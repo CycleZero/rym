@@ -11,8 +11,8 @@ import (
 	"testing"
 	"time"
 
-	"gin-template/conf"
-	"gin-template/pkg/transport"
+	"github.com/CycleZero/rym/conf"
+	"github.com/CycleZero/rym/pkg/transport"
 )
 
 func pprofConfig(enable bool, host string, port uint32) *conf.Bootstrap {

@@ -4,8 +4,8 @@ import (
 	"context"
 	"strings"
 
-	"gin-template/pkg/errs"
-	"gin-template/pkg/tx"
+	"github.com/CycleZero/rym/pkg/errs"
+	"github.com/CycleZero/rym/pkg/tx"
 )
 
 // Usecase demo 业务编排。

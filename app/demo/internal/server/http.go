@@ -6,7 +6,7 @@
 package server
 
 import (
-	v1 "gin-template/api/demo/v1"
+	v1 "github.com/CycleZero/rym/api/demo/v1"
 
 	khttp "github.com/go-kratos/kratos/v3/transport/http"
 )

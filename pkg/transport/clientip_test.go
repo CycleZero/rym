@@ -5,7 +5,7 @@ import (
 	"net/http"
 	"testing"
 
-	"gin-template/conf"
+	"github.com/CycleZero/rym/conf"
 )
 
 // TestClientIPOnlyTrustsConfiguredProxies 锁定"代理头只在可信对端时才采信"。

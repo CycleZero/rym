@@ -10,7 +10,7 @@ import (
 	"strings"
 	"testing"
 
-	"gin-template/pkg/errs"
+	"github.com/CycleZero/rym/pkg/errs"
 
 	sdktrace "go.opentelemetry.io/otel/sdk/trace"
 )

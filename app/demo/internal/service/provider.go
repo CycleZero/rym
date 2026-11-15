@@ -1,7 +1,7 @@
 package service
 
 import (
-	v1 "gin-template/api/demo/v1"
+	v1 "github.com/CycleZero/rym/api/demo/v1"
 
 	"github.com/google/wire"
 )

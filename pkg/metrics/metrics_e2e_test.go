@@ -10,7 +10,7 @@ import (
 	"testing"
 	"time"
 
-	"gin-template/pkg/otelx"
+	"github.com/CycleZero/rym/pkg/otelx"
 
 	"go.opentelemetry.io/otel"
 	colmetric "go.opentelemetry.io/proto/otlp/collector/metrics/v1"

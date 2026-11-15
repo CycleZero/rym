@@ -6,7 +6,7 @@ import (
 	"fmt"
 	"time"
 
-	"gin-template/pkg/log"
+	"github.com/CycleZero/rym/pkg/log"
 
 	"gorm.io/gorm"
 	"gorm.io/gorm/logger"

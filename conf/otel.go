@@ -1,9 +1,9 @@
 package conf
 
-import "gin-template/pkg/otelx"
+import "github.com/CycleZero/rym/pkg/otelx"
 
 // DefaultServiceName 未配置 otel.service_name 时使用的默认服务名。
-const DefaultServiceName = "gin-template"
+const DefaultServiceName = "rym"
 
 // ServiceName 返回服务名（未配置时回退默认值）。
 //

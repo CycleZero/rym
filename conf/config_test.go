@@ -26,7 +26,7 @@ data:
     port: "${DB_PORT:3306}"
     user: "${DB_USER:root}"
     password: "${DB_PASSWORD:secret}"
-    db_name: "${DB_NAME:gin_template}"
+    db_name: "${DB_NAME:rym}"
     debug: "${DB_DEBUG:false}"
   redis:
     host: "${REDIS_HOST:localhost}"
@@ -66,7 +66,7 @@ func TestLoadPlaceholderDefaults(t *testing.T) {
 	defer func() { _ = src.Close() }()
 
 	if got, want := cfg.GetData().GetDb().DSN(),
-		"root:secret@tcp(localhost:3306)/gin_template?charset=utf8mb4&parseTime=True&loc=Local"; got != want {
+		"root:secret@tcp(localhost:3306)/rym?charset=utf8mb4&parseTime=True&loc=Local"; got != want {
 		t.Errorf("DB.DSN() = %q, want %q", got, want)
 	}
 	if got, want := cfg.GetData().GetRedis().Addr(), "localhost:6379"; got != want {
@@ -98,7 +98,7 @@ func TestLoadEnvOverride(t *testing.T) {
 	defer func() { _ = src.Close() }()
 
 	if got, want := cfg.GetData().GetDb().DSN(),
-		"root:s3cr3t@tcp(10.0.0.12:3400)/gin_template?charset=utf8mb4&parseTime=True&loc=Local"; got != want {
+		"root:s3cr3t@tcp(10.0.0.12:3400)/rym?charset=utf8mb4&parseTime=True&loc=Local"; got != want {
 		t.Errorf("DB.DSN() = %q, want %q", got, want)
 	}
 	if got, want := cfg.GetServer().GetHttp().Addr(), "0.0.0.0:8123"; got != want {

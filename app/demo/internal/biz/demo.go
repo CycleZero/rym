@@ -10,7 +10,7 @@ import (
 	"context"
 	"time"
 
-	"gin-template/pkg/errs"
+	"github.com/CycleZero/rym/pkg/errs"
 )
 
 // ErrDemoNotFound 领域错误：记录不存在。

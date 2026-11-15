@@ -2,7 +2,7 @@ syntax = "proto3";
 
 package demo.conf;
 
-option go_package = "gin-template/app/demo/conf;conf";
+option go_package = "github.com/CycleZero/rym/app/demo/conf;conf";
 
 // Config 是 demo 服务的**自有配置**（拆分微服务时整目录搬走）。
 //

@@ -21,9 +21,9 @@ import (
 	"log/slog"
 	"net/http"
 
-	"gin-template/pkg/errs"
-	"gin-template/pkg/log"
-	"gin-template/pkg/trace"
+	"github.com/CycleZero/rym/pkg/errs"
+	"github.com/CycleZero/rym/pkg/log"
+	"github.com/CycleZero/rym/pkg/trace"
 )
 
 // HeaderRequestID 响应头：值与响应体 trace_id 同源。

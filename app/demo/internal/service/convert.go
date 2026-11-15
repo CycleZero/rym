@@ -3,8 +3,8 @@ package service
 import (
 	"time"
 
-	v1 "gin-template/api/demo/v1"
-	"gin-template/app/demo/internal/biz"
+	v1 "github.com/CycleZero/rym/api/demo/v1"
+	"github.com/CycleZero/rym/app/demo/internal/biz"
 )
 
 // TimeLayout 对外时间格式：RFC3339（与 proto 注释一致）。

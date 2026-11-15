@@ -9,9 +9,9 @@
 package demo
 
 import (
-	"gin-template/app/demo/conf"
-	"gin-template/app/demo/internal/biz"
-	"gin-template/app/demo/internal/server"
+	"github.com/CycleZero/rym/app/demo/conf"
+	"github.com/CycleZero/rym/app/demo/internal/biz"
+	"github.com/CycleZero/rym/app/demo/internal/server"
 
 	"github.com/google/wire"
 )

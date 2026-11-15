@@ -23,7 +23,7 @@ import (
 	"sync"
 	"time"
 
-	"gin-template/pkg/otelx"
+	"github.com/CycleZero/rym/pkg/otelx"
 
 	oteltrace "go.opentelemetry.io/otel/trace"
 	"go.uber.org/zap/exp/zapslog"

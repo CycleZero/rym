@@ -6,13 +6,13 @@ package main
 import (
 	"log/slog"
 
-	"gin-template/app/demo"
-	democonf "gin-template/app/demo/conf"
-	"gin-template/conf"
-	"gin-template/pkg/cache"
-	"gin-template/pkg/db"
-	"gin-template/pkg/transport"
-	"gin-template/pkg/tx"
+	"github.com/CycleZero/rym/app/demo"
+	democonf "github.com/CycleZero/rym/app/demo/conf"
+	"github.com/CycleZero/rym/conf"
+	"github.com/CycleZero/rym/pkg/cache"
+	"github.com/CycleZero/rym/pkg/db"
+	"github.com/CycleZero/rym/pkg/transport"
+	"github.com/CycleZero/rym/pkg/tx"
 
 	"github.com/go-kratos/kratos/v3"
 	"github.com/google/wire"

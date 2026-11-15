@@ -46,7 +46,7 @@ func TestParseEndpoint(t *testing.T) {
 
 func TestServiceInfoResource(t *testing.T) {
 	res := ServiceInfo{
-		Name:        "gin-template",
+		Name:        "rym",
 		ID:          "host-1",
 		Version:     "v1.2.3",
 		Environment: "production",
@@ -57,7 +57,7 @@ func TestServiceInfoResource(t *testing.T) {
 		got[string(kv.Key)] = kv.Value.AsString()
 	}
 	for key, want := range map[string]string{
-		"service.name":           "gin-template",
+		"service.name":           "rym",
 		"service.instance.id":    "host-1",
 		"service.version":        "v1.2.3",
 		"deployment.environment": "production",

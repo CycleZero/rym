@@ -1,7 +1,7 @@
 package data
 
 import (
-	"gin-template/app/demo/internal/biz"
+	"github.com/CycleZero/rym/app/demo/internal/biz"
 
 	"github.com/google/wire"
 )

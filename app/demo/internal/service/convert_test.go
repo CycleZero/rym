@@ -4,8 +4,8 @@ import (
 	"testing"
 	"time"
 
-	v1 "gin-template/api/demo/v1"
-	"gin-template/app/demo/internal/biz"
+	v1 "github.com/CycleZero/rym/api/demo/v1"
+	"github.com/CycleZero/rym/app/demo/internal/biz"
 )
 
 // TestToProtoMapsEveryField 锁定 biz → proto 的映射完整性。

@@ -14,7 +14,7 @@ import (
 	"testing"
 )
 
-const modulePath = "gin-template"
+const modulePath = "github.com/CycleZero/rym"
 
 // repoRoot 从测试工作目录向上找到 go.mod。
 func repoRoot(t *testing.T) string {

@@ -7,7 +7,7 @@ import (
 	"strings"
 	"time"
 
-	"gin-template/pkg/otelx"
+	"github.com/CycleZero/rym/pkg/otelx"
 
 	"go.opentelemetry.io/otel/attribute"
 	"go.opentelemetry.io/otel/exporters/otlp/otlplog/otlploghttp"
@@ -70,7 +70,7 @@ func newOTLPCore(
 
 	name := service.Name
 	if name == "" {
-		name = "gin-template"
+		name = "rym"
 	}
 
 	return &otlpCore{emitter: provider.Logger(name), minLevel: minLevel}, provider.Shutdown, nil

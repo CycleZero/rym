@@ -1,8 +1,8 @@
 package main
 
 import (
-	"gin-template/app/demo"
-	"gin-template/pkg/module"
+	"github.com/CycleZero/rym/app/demo"
+	"github.com/CycleZero/rym/pkg/module"
 )
 
 // newModuleSet 是**唯一的模块聚合缝**。

@@ -1,4 +1,4 @@
-module gin-template
+module github.com/CycleZero/rym
 
 go 1.27.1
 

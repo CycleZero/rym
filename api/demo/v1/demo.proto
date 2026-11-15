@@ -8,7 +8,7 @@ package api.demo.v1;
 
 import "google/api/annotations.proto";
 
-option go_package = "gin-template/api/demo/v1;v1";
+option go_package = "github.com/CycleZero/rym/api/demo/v1;v1";
 
 // DemoService 是 demo 模块的**对外契约**。
 //

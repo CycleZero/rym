@@ -4,11 +4,11 @@ import (
 	"os"
 	"time"
 
-	"gin-template/conf"
-	"gin-template/pkg/log"
-	"gin-template/pkg/metrics"
-	"gin-template/pkg/otelx"
-	"gin-template/pkg/trace"
+	"github.com/CycleZero/rym/conf"
+	"github.com/CycleZero/rym/pkg/log"
+	"github.com/CycleZero/rym/pkg/metrics"
+	"github.com/CycleZero/rym/pkg/otelx"
+	"github.com/CycleZero/rym/pkg/trace"
 )
 
 // otelEndpoints 从 otel 配置派生三路端点。

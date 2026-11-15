@@ -5,10 +5,10 @@ import (
 	"errors"
 	"time"
 
-	"gin-template/conf"
-	"gin-template/pkg/cache"
-	"gin-template/pkg/db"
-	"gin-template/pkg/transport"
+	"github.com/CycleZero/rym/conf"
+	"github.com/CycleZero/rym/pkg/cache"
+	"github.com/CycleZero/rym/pkg/db"
+	"github.com/CycleZero/rym/pkg/transport"
 
 	"github.com/redis/go-redis/v9"
 	"gorm.io/gorm"

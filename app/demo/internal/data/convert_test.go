@@ -4,7 +4,7 @@ import (
 	"testing"
 	"time"
 
-	"gin-template/app/demo/internal/biz"
+	"github.com/CycleZero/rym/app/demo/internal/biz"
 )
 
 // TestFromBizToBizRoundTrip 锁定「领域模型 ↔ PO」映射是完整的：

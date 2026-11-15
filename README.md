@@ -1,10 +1,12 @@
-# gin-template
+# rym
 
-**单体部署、服务可拆分**的 Go 服务端骨架：目录与依赖形状对齐生产微服务仓库，
-但当前只跑一个进程。未来拆服务 = `mv app/<svc>` + 补一个 30 行 `main.go`，
+**IM 服务端**：单体部署、服务可拆分。目录与依赖形状对齐生产微服务仓库，
+当前只跑一个进程。未来拆服务 = `mv app/<svc>` + 补一个 30 行 `main.go`，
 不需要改 internal 里任何代码。
 
-> 注意：`gin` 已完全移除（传输层换成 kratos `transport/http`），仓库名保留是历史原因。
+> 本仓库由 [`CycleZero/gin-template`](https://github.com/CycleZero/gin-template)
+> 脚手架初始化。传输层是 kratos `transport/http`（路由由 proto 生成）。
+> `app/demo` 是脚手架自带的示例模块，第一个真实业务模块落地后可以删除。
 
 ## 技术栈
 
@@ -132,8 +134,8 @@ func initApp(bc *conf.Bootstrap, demoCfg *democonf.Config, logger *slog.Logger) 
 ```bash
 cp config.yaml.example config.yaml      # 按需改 DB/Redis
 make build                              # 或 make rebuild（含代码生成）
-make migrate DB_NAME=gin_template       # 建表（编号 SQL，非 AutoMigrate）
-./bin/server -conf config.yaml
+make migrate DB_NAME=rym       # 建表（编号 SQL，非 AutoMigrate）
+./bin/rym -conf config.yaml
 ```
 
 常用接口：

@@ -11,7 +11,7 @@ import (
 	"testing"
 	"time"
 
-	"gin-template/pkg/otelx"
+	"github.com/CycleZero/rym/pkg/otelx"
 
 	oteltrace "go.opentelemetry.io/otel/trace"
 	collog "go.opentelemetry.io/proto/otlp/collector/logs/v1"

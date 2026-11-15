@@ -14,7 +14,7 @@ import (
 	"fmt"
 	"time"
 
-	"gin-template/pkg/otelx"
+	"github.com/CycleZero/rym/pkg/otelx"
 
 	otelruntime "go.opentelemetry.io/contrib/instrumentation/runtime"
 	"go.opentelemetry.io/otel"

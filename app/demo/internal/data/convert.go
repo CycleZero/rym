@@ -1,7 +1,7 @@
 package data
 
 import (
-	"gin-template/app/demo/internal/biz"
+	"github.com/CycleZero/rym/app/demo/internal/biz"
 )
 
 // toBiz 把数据库模型转换为领域模型（逐字段 1:1）。

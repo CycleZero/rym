@@ -4,8 +4,8 @@ import (
 	"context"
 	"errors"
 
-	"gin-template/app/demo/internal/biz"
-	"gin-template/pkg/tx"
+	"github.com/CycleZero/rym/app/demo/internal/biz"
+	"github.com/CycleZero/rym/pkg/tx"
 
 	"gorm.io/gorm"
 )

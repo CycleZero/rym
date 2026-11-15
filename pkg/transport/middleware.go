@@ -10,12 +10,12 @@ import (
 	"strings"
 	"time"
 
-	"gin-template/conf"
-	"gin-template/pkg/common"
-	"gin-template/pkg/errs"
-	"gin-template/pkg/log"
-	"gin-template/pkg/response"
-	"gin-template/pkg/trace"
+	"github.com/CycleZero/rym/conf"
+	"github.com/CycleZero/rym/pkg/common"
+	"github.com/CycleZero/rym/pkg/errs"
+	"github.com/CycleZero/rym/pkg/log"
+	"github.com/CycleZero/rym/pkg/response"
+	"github.com/CycleZero/rym/pkg/trace"
 
 	"github.com/go-kratos/kratos/v3/middleware"
 	"github.com/go-kratos/kratos/v3/middleware/recovery"

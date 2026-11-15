@@ -1,4 +1,4 @@
-BINARY_NAME := server
+BINARY_NAME := rym
 BINARY_PATH := ./bin/${BINARY_NAME}
 MAIN_PKG    := ./cmd/server
 
@@ -64,5 +64,5 @@ verify: fmt
 
 # 数据库迁移（编号 SQL，禁止 AutoMigrate）
 migrate:
-	@test -n "$(DB_NAME)" || (echo "用法: make migrate DB_NAME=gin_template [DB_HOST=127.0.0.1 DB_PORT=3306 DB_USER=root DB_PASSWORD=xxx]"; exit 1)
+	@test -n "$(DB_NAME)" || (echo "用法: make migrate DB_NAME=rym [DB_HOST=127.0.0.1 DB_PORT=3306 DB_USER=root DB_PASSWORD=xxx]"; exit 1)
 	mysql -h $${DB_HOST:-127.0.0.1} -P $${DB_PORT:-3306} -u $${DB_USER:-root} $${DB_PASSWORD:+-p$${DB_PASSWORD}} $${DB_NAME} < app/demo/migrations/001_init.sql

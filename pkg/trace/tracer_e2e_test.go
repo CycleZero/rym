@@ -9,7 +9,7 @@ import (
 	"sync"
 	"testing"
 
-	"gin-template/pkg/otelx"
+	"github.com/CycleZero/rym/pkg/otelx"
 
 	"go.opentelemetry.io/otel"
 	coltrace "go.opentelemetry.io/proto/otlp/collector/trace/v1"

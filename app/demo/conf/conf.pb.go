@@ -84,7 +84,7 @@ const file_demo_conf_conf_proto_rawDesc = "" +
 	"\x14demo/conf/conf.proto\x12\tdemo.conf\"X\n" +
 	"\x06Config\x12*\n" +
 	"\x11default_page_size\x18\x01 \x01(\rR\x0fdefaultPageSize\x12\"\n" +
-	"\rmax_page_size\x18\x02 \x01(\rR\vmaxPageSizeB!Z\x1fgin-template/app/demo/conf;confb\x06proto3"
+	"\rmax_page_size\x18\x02 \x01(\rR\vmaxPageSizeB-Z+github.com/CycleZero/rym/app/demo/conf;confb\x06proto3"
 
 var (
 	file_demo_conf_conf_proto_rawDescOnce sync.Once

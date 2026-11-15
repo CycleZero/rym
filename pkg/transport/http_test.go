@@ -11,11 +11,11 @@ import (
 	"strings"
 	"testing"
 
-	"gin-template/conf"
-	"gin-template/pkg/otelx"
-	"gin-template/pkg/response"
-	"gin-template/pkg/trace"
-	"gin-template/pkg/transport"
+	"github.com/CycleZero/rym/conf"
+	"github.com/CycleZero/rym/pkg/otelx"
+	"github.com/CycleZero/rym/pkg/response"
+	"github.com/CycleZero/rym/pkg/trace"
+	"github.com/CycleZero/rym/pkg/transport"
 )
 
 // newTestServer 装配一个真实的 kratos http.Server（仅依赖内存，无需 DB/Redis）。

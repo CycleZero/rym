@@ -12,7 +12,7 @@ data:
     port: "${DB_PORT:3306}"
     user: "${DB_USER:root}"
     password: "${DB_PASSWORD:your_password}"
-    db_name: "${DB_NAME:gin_template}"
+    db_name: "${DB_NAME:rym}"
     # 连接池（0 = 使用代码内默认值：50/10/30m/10m）
     max_open_conns: "${DB_MAX_OPEN_CONNS:50}"
     max_idle_conns: "${DB_MAX_IDLE_CONNS:10}"
@@ -68,7 +68,7 @@ security:
 otel:
   endpoint: "${OTEL_ENDPOINT:}"                    # 如 http://127.0.0.1:4318
   insecure: "${OTEL_INSECURE:true}"                # 明文传输；endpoint 带 http:// 时自动为 true
-  service_name: "${OTEL_SERVICE_NAME:gin-template}"
+  service_name: "${OTEL_SERVICE_NAME:rym}"
   service_version: "${OTEL_SERVICE_VERSION:v0.0.0}"
   environment: "${OTEL_ENVIRONMENT:development}"
   trace_sample_rate: "${OTEL_TRACE_SAMPLE_RATE:1.0}"      # 0.0-1.0，0 视为 1.0（全量）

@@ -2,7 +2,7 @@ syntax = "proto3";
 
 package conf;
 
-option go_package = "gin-template/conf;conf";
+option go_package = "github.com/CycleZero/rym/conf;conf";
 
 // Bootstrap 是**进程级共享配置**：日志、OTel、监听地址、数据库/Redis 连接。
 //
@@ -24,7 +24,7 @@ message Otel {
   string endpoint = 1;                  // 空值 = 关闭全部 OTLP 上报（默认，安全）
   bool insecure = 2;                    // 明文传输
   map<string, string> headers = 3;      // 额外请求头（如 ingestion key）
-  string service_name = 4;              // service.name，缺省为 gin-template
+  string service_name = 4;              // service.name，缺省为 rym
   string service_version = 5;           // service.version
   string environment = 6;               // deployment.environment
   double trace_sample_rate = 7;         // 0.0-1.0，0 视为 1.0

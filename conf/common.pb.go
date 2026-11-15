@@ -110,7 +110,7 @@ type Otel struct {
 	Endpoint               string                 `protobuf:"bytes,1,opt,name=endpoint,proto3" json:"endpoint,omitempty"`                                                                         // 空值 = 关闭全部 OTLP 上报（默认，安全）
 	Insecure               bool                   `protobuf:"varint,2,opt,name=insecure,proto3" json:"insecure,omitempty"`                                                                        // 明文传输
 	Headers                map[string]string      `protobuf:"bytes,3,rep,name=headers,proto3" json:"headers,omitempty" protobuf_key:"bytes,1,opt,name=key" protobuf_val:"bytes,2,opt,name=value"` // 额外请求头（如 ingestion key）
-	ServiceName            string                 `protobuf:"bytes,4,opt,name=service_name,json=serviceName,proto3" json:"service_name,omitempty"`                                                // service.name，缺省为 gin-template
+	ServiceName            string                 `protobuf:"bytes,4,opt,name=service_name,json=serviceName,proto3" json:"service_name,omitempty"`                                                // service.name，缺省为 rym
 	ServiceVersion         string                 `protobuf:"bytes,5,opt,name=service_version,json=serviceVersion,proto3" json:"service_version,omitempty"`                                       // service.version
 	Environment            string                 `protobuf:"bytes,6,opt,name=environment,proto3" json:"environment,omitempty"`                                                                   // deployment.environment
 	TraceSampleRate        float64                `protobuf:"fixed64,7,opt,name=trace_sample_rate,json=traceSampleRate,proto3" json:"trace_sample_rate,omitempty"`                                // 0.0-1.0，0 视为 1.0
@@ -831,7 +831,7 @@ const file_common_proto_rawDesc = "" +
 	"\n" +
 	"jwt_secret\x18\x01 \x01(\tR\tjwtSecret\x124\n" +
 	"\x16trust_gateway_identity\x18\x02 \x01(\bR\x14trustGatewayIdentity\x12!\n" +
-	"\frequire_auth\x18\x03 \x01(\bR\vrequireAuthB\x18Z\x16gin-template/conf;confb\x06proto3"
+	"\frequire_auth\x18\x03 \x01(\bR\vrequireAuthB$Z\"github.com/CycleZero/rym/conf;confb\x06proto3"
 
 var (
 	file_common_proto_rawDescOnce sync.Once

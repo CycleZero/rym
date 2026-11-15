@@ -10,7 +10,7 @@ import (
 	"strconv"
 	"time"
 
-	"gin-template/conf"
+	"github.com/CycleZero/rym/conf"
 )
 
 // PProfServer 独立的 pprof 调试服务（实现 kratos transport.Server）。

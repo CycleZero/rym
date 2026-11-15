@@ -8,11 +8,11 @@ import (
 	"os"
 	"time"
 
-	democonf "gin-template/app/demo/conf"
-	"gin-template/conf"
-	"gin-template/pkg/log"
-	"gin-template/pkg/metrics"
-	"gin-template/pkg/trace"
+	democonf "github.com/CycleZero/rym/app/demo/conf"
+	"github.com/CycleZero/rym/conf"
+	"github.com/CycleZero/rym/pkg/log"
+	"github.com/CycleZero/rym/pkg/metrics"
+	"github.com/CycleZero/rym/pkg/trace"
 )
 
 // shutdownTimeout 优雅停机的总预算：排空在途请求 + flush 遥测数据。

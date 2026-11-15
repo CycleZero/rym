@@ -7,8 +7,8 @@ import (
 	"sync"
 	"testing"
 
-	"gin-template/app/demo/internal/biz"
-	"gin-template/pkg/errs"
+	"github.com/CycleZero/rym/app/demo/internal/biz"
+	"github.com/CycleZero/rym/pkg/errs"
 )
 
 // fakeRepo 是零依赖的仓储替身（仅测试使用）。

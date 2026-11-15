@@ -12,9 +12,9 @@ import (
 	"net/http"
 	"time"
 
-	"gin-template/conf"
-	"gin-template/pkg/errs"
-	"gin-template/pkg/response"
+	"github.com/CycleZero/rym/conf"
+	"github.com/CycleZero/rym/pkg/errs"
+	"github.com/CycleZero/rym/pkg/response"
 
 	khttp "github.com/go-kratos/kratos/v3/transport/http"
 )

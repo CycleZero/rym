@@ -530,7 +530,7 @@ const file_demo_v1_demo_proto_rawDesc = "" +
 	"\n" +
 	"UpdateDemo\x12\x1e.api.demo.v1.UpdateDemoRequest\x1a\x11.api.demo.v1.Demo\"\x19\x82\xd3\xe4\x93\x02\x13:\x01*\x1a\x0e/v1/demos/{id}\x12e\n" +
 	"\n" +
-	"DeleteDemo\x12\x1e.api.demo.v1.DeleteDemoRequest\x1a\x1f.api.demo.v1.DeleteDemoResponse\"\x16\x82\xd3\xe4\x93\x02\x10*\x0e/v1/demos/{id}B\x1dZ\x1bgin-template/api/demo/v1;v1b\x06proto3"
+	"DeleteDemo\x12\x1e.api.demo.v1.DeleteDemoRequest\x1a\x1f.api.demo.v1.DeleteDemoResponse\"\x16\x82\xd3\xe4\x93\x02\x10*\x0e/v1/demos/{id}B)Z'github.com/CycleZero/rym/api/demo/v1;v1b\x06proto3"
 
 var (
 	file_demo_v1_demo_proto_rawDescOnce sync.Once

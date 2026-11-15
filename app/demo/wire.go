@@ -6,12 +6,12 @@ package demo
 import (
 	"log/slog"
 
-	"gin-template/app/demo/conf"
-	"gin-template/app/demo/internal/biz"
-	"gin-template/app/demo/internal/data"
-	"gin-template/app/demo/internal/server"
-	"gin-template/app/demo/internal/service"
-	"gin-template/pkg/tx"
+	"github.com/CycleZero/rym/app/demo/conf"
+	"github.com/CycleZero/rym/app/demo/internal/biz"
+	"github.com/CycleZero/rym/app/demo/internal/data"
+	"github.com/CycleZero/rym/app/demo/internal/server"
+	"github.com/CycleZero/rym/app/demo/internal/service"
+	"github.com/CycleZero/rym/pkg/tx"
 
 	khttp "github.com/go-kratos/kratos/v3/transport/http"
 	"github.com/google/wire"

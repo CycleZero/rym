@@ -4,9 +4,9 @@ import (
 	"log/slog"
 	"time"
 
-	"gin-template/conf"
-	"gin-template/pkg/module"
-	"gin-template/pkg/transport"
+	"github.com/CycleZero/rym/conf"
+	"github.com/CycleZero/rym/pkg/module"
+	"github.com/CycleZero/rym/pkg/transport"
 
 	"github.com/go-kratos/kratos/v3"
 	ktransport "github.com/go-kratos/kratos/v3/transport"

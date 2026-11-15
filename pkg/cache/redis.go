@@ -8,7 +8,7 @@ import (
 	"strconv"
 	"time"
 
-	"gin-template/pkg/trace"
+	"github.com/CycleZero/rym/pkg/trace"
 
 	"github.com/redis/go-redis/v9"
 )
