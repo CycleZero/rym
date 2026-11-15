@@ -1,0 +1,4 @@
+# demo 服务自有配置（可选）。缺省时使用代码内默认值。
+# 拆分微服务后，本文件跟随 app/demo 一起迁走。
+default_page_size: 10
+max_page_size: 100

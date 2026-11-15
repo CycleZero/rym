@@ -1,0 +1,79 @@
+# 配置来源与优先级（后加载的覆盖先加载的）：
+#   1. 本文件：默认值，随版本库管理
+#   2. 环境变量：前缀 APP_，去掉前缀后的名字即 key（APP_DB_HOST -> DB_HOST）
+#
+# 本文件中的 ${KEY:default} 占位符会从「合并后的配置」解析，因此嵌套配置
+# 也能用环境变量覆盖，且密钥不必写进文件。例如：
+#   APP_DB_HOST=10.0.0.12 APP_DB_PASSWORD=secret ./bin/server
+
+data:
+  db:
+    host: "${DB_HOST:localhost}"
+    port: "${DB_PORT:3306}"
+    user: "${DB_USER:root}"
+    password: "${DB_PASSWORD:your_password}"
+    db_name: "${DB_NAME:gin_template}"
+    # 连接池（0 = 使用代码内默认值：50/10/30m/10m）
+    max_open_conns: "${DB_MAX_OPEN_CONNS:50}"
+    max_idle_conns: "${DB_MAX_IDLE_CONNS:10}"
+    conn_max_lifetime_seconds: "${DB_CONN_MAX_LIFETIME:1800}"
+    conn_max_idle_time_seconds: "${DB_CONN_MAX_IDLE_TIME:600}"
+    # SQL 日志：false（生产默认）时只记 Warn/Error，true 时输出每条 SQL
+    debug: "${DB_DEBUG:false}"
+  redis:
+    host: "${REDIS_HOST:localhost}"
+    port: "${REDIS_PORT:6379}"
+    password: "${REDIS_PASSWORD:}"
+
+server:
+  http:
+    host: "${HTTP_HOST:0.0.0.0}"
+    port: "${HTTP_PORT:8000}"
+    # CORS 白名单（精确匹配 Origin）。留空使用内置本地开发白名单：
+    # http://localhost:3000 / :5173、tauri://localhost、http://tauri.localhost
+    cors_allow_origins: []
+    # 可信反向代理的 CIDR 白名单。只有 TCP 对端命中这里，才采信
+    # X-Real-IP / X-Forwarded-For；否则一律用 TCP 对端地址。
+    # 这两个头客户端可随意伪造，留空（默认）= 谁都不信，直连场景的正确取值。
+    # 前面有 nginx / 网关 / Ingress 时填它们的网段，例如：
+    #   - "127.0.0.1/32"
+    #   - "10.0.0.0/8"
+    trusted_proxies: []
+    pprof:
+      # 性能分析：只在**独立端口**提供，绝不挂到业务端口（enable=true 但 port=0 会跳过）。
+      # 它能读取进程内存（含堆上的令牌/密钥），生产请只监听本机或内网地址。
+      enable: "${PPROF_ENABLE:false}"
+      host: "${PPROF_HOST:127.0.0.1}"
+      port: "${PPROF_PORT:6060}"
+
+log:
+  mode: "${LOG_MODE:dev}"      # dev | prod
+  level: "${LOG_LEVEL:debug}"  # debug | info | warn | error
+  dir: "${LOG_DIR:./data/log}"
+
+# 身份相关。终态由网关鉴权并下发 x-md-global-auth-user-id；
+# 单体阶段可回退到本地 JWT（HS256）。
+security:
+  jwt_secret: "${JWT_SECRET:}"
+  trust_gateway_identity: "${TRUST_GATEWAY_IDENTITY:false}"
+  # 全局强制鉴权；false 时为可选鉴权（仅填充身份）。为 true 时必须配置 jwt_secret。
+  require_auth: "${REQUIRE_AUTH:false}"
+
+# 可观测性：OTLP/HTTP 主动推送，一个端点同时驱动 trace / metrics / logs
+# （仅 exporter 默认路径不同：/v1/traces、/v1/metrics、/v1/logs）。
+#
+# endpoint 留空 = 全部关闭上报（默认，零开销）。指向任一 OTLP 兼容后端即可：
+#   otel-collector: http://127.0.0.1:4318
+#   SigNoz / Jaeger / Tempo / Grafana Alloy 等
+otel:
+  endpoint: "${OTEL_ENDPOINT:}"                    # 如 http://127.0.0.1:4318
+  insecure: "${OTEL_INSECURE:true}"                # 明文传输；endpoint 带 http:// 时自动为 true
+  service_name: "${OTEL_SERVICE_NAME:gin-template}"
+  service_version: "${OTEL_SERVICE_VERSION:v0.0.0}"
+  environment: "${OTEL_ENVIRONMENT:development}"
+  trace_sample_rate: "${OTEL_TRACE_SAMPLE_RATE:1.0}"      # 0.0-1.0，0 视为 1.0（全量）
+  metrics_interval_seconds: "${OTEL_METRICS_INTERVAL:15}"
+  # metrics_endpoint: ""   # 可选：把 metrics 单独指向别的后端
+  # logs_endpoint: ""      # 可选：把 logs 单独指向别的后端
+  # headers:               # 可选：额外请求头（如 ingestion key）
+  #   x-ingestion-key: "${OTEL_INGESTION_KEY:}"

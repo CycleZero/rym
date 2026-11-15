@@ -1,0 +1,90 @@
+syntax = "proto3";
+
+// 包名约定：api.<svc>.<version>。
+// 加 api. 前缀是为了多服务共存时不撞名——合并 descriptor、生成单一
+// openapi.yaml、或在网关聚合路由时，demo.v1 这种短名很容易与别的服务
+// 或 common.v1 冲突；一旦对外发布再改包名属于破坏性变更。
+package api.demo.v1;
+
+import "google/api/annotations.proto";
+
+option go_package = "gin-template/api/demo/v1;v1";
+
+// DemoService 是 demo 模块的**对外契约**。
+//
+// 路由由 proto 生成（protoc-gen-go-http），路径统一 /v1/ 前缀；
+// 网关接入后由网关负责 rewrite（/api → /v1），服务本身不再带 /api。
+service DemoService {
+  rpc CreateDemo(CreateDemoRequest) returns (Demo) {
+    option (google.api.http) = {
+      post: "/v1/demos"
+      body: "*"
+    };
+  }
+
+  rpc GetDemo(GetDemoRequest) returns (Demo) {
+    option (google.api.http) = {get: "/v1/demos/{id}"};
+  }
+
+  rpc ListDemos(ListDemosRequest) returns (ListDemosResponse) {
+    option (google.api.http) = {get: "/v1/demos"};
+  }
+
+  rpc UpdateDemo(UpdateDemoRequest) returns (Demo) {
+    option (google.api.http) = {
+      put: "/v1/demos/{id}"
+      body: "*"
+    };
+  }
+
+  rpc DeleteDemo(DeleteDemoRequest) returns (DeleteDemoResponse) {
+    option (google.api.http) = {delete: "/v1/demos/{id}"};
+  }
+}
+
+message Demo {
+  uint64 id = 1;
+  string name = 2;
+  string description = 3;
+  int32 status = 4;
+  uint64 created_by = 5;
+  // RFC3339 时间字符串（对外契约不暴露 time.Time 的内部表示）。
+  string created_at = 6;
+  string updated_at = 7;
+}
+
+message CreateDemoRequest {
+  string name = 1;
+  string description = 2;
+}
+
+message GetDemoRequest {
+  uint64 id = 1;
+}
+
+message ListDemosRequest {
+  // 页码从 1 开始；缺省为服务配置的默认值。
+  int32 page = 1;
+  int32 page_size = 2;
+}
+
+message ListDemosResponse {
+  repeated Demo list = 1;
+  int64 total = 2;
+  int32 page = 3;
+  int32 page_size = 4;
+}
+
+message UpdateDemoRequest {
+  uint64 id = 1;
+  string name = 2;
+  string description = 3;
+}
+
+message DeleteDemoRequest {
+  uint64 id = 1;
+}
+
+message DeleteDemoResponse {
+  string message = 1;
+}

@@ -1,0 +1,9 @@
+version: v2
+
+# 进程级共享配置：conf/common.proto → conf/common.pb.go
+inputs:
+  - directory: conf
+plugins:
+  - local: protoc-gen-go
+    out: conf
+    opt: paths=source_relative

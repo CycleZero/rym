@@ -1,0 +1,15 @@
+.idea/
+
+bin/
+config.yaml
+
+data/log/
+
+/data/
+
+# 服务自有配置：只提交示例文件
+configs/*.yaml
+!configs/*.yaml.example
+
+# 临时目录（交接文档、草稿等，不入库）
+temp/

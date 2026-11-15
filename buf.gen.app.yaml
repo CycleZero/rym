@@ -1,0 +1,9 @@
+version: v2
+
+# 每服务自包含配置：app/<svc>/conf/conf.proto → app/<svc>/conf/conf.pb.go
+inputs:
+  - directory: app
+plugins:
+  - local: protoc-gen-go
+    out: app
+    opt: paths=source_relative

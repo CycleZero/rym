@@ -1,0 +1,15 @@
+version: v2
+
+# 对外契约：api/<svc>/v1/*.proto → api/<svc>/v1/*.pb.go（入库，克隆即可构建）
+inputs:
+  - directory: api
+plugins:
+  - local: protoc-gen-go
+    out: api
+    opt: paths=source_relative
+  - local: protoc-gen-go-grpc
+    out: api
+    opt: paths=source_relative
+  - local: protoc-gen-go-http
+    out: api
+    opt: paths=source_relative

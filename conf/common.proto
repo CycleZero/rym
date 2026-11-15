@@ -1,0 +1,104 @@
+syntax = "proto3";
+
+package conf;
+
+option go_package = "gin-template/conf;conf";
+
+// Bootstrap 是**进程级共享配置**：日志、OTel、监听地址、数据库/Redis 连接。
+//
+// 服务自己的业务配置不放这里：每个服务在 app/<svc>/conf/conf.proto 里
+// 自包含声明（拆分微服务时整目录搬走即可）。
+//
+// key 与字段名一一对应：protojson 同时接受原始 snake_case 与 lowerCamelCase，
+// 因此 config.yaml 里沿用 snake_case 无需修改。
+message Bootstrap {
+  Server server = 1;
+  Log log = 2;
+  Otel otel = 3;
+  Data data = 4;
+  Security security = 5;
+}
+
+// Otel 可观测性配置：一个端点驱动 trace / metrics / logs 三路 OTLP/HTTP 推送。
+message Otel {
+  string endpoint = 1;                  // 空值 = 关闭全部 OTLP 上报（默认，安全）
+  bool insecure = 2;                    // 明文传输
+  map<string, string> headers = 3;      // 额外请求头（如 ingestion key）
+  string service_name = 4;              // service.name，缺省为 gin-template
+  string service_version = 5;           // service.version
+  string environment = 6;               // deployment.environment
+  double trace_sample_rate = 7;         // 0.0-1.0，0 视为 1.0
+  string metrics_endpoint = 8;          // 可选：metrics 专用端点
+  string logs_endpoint = 9;             // 可选：logs 专用端点
+  uint32 metrics_interval_seconds = 10; // 指标推送周期，0 视为 15s
+}
+
+// Data 共享数据源配置（单体阶段全进程共用一套连接池）。
+message Data {
+  DB db = 1;
+  Redis redis = 2;
+}
+
+message DB {
+  string host = 1;
+  int32 port = 2;
+  string user = 3;
+  string password = 4;
+  string db_name = 5;
+
+  // 连接池参数；0 表示使用代码内默认值（见 pkg/db）。
+  int32 max_open_conns = 6;
+  int32 max_idle_conns = 7;
+  uint32 conn_max_lifetime_seconds = 8;
+  uint32 conn_max_idle_time_seconds = 9;
+
+  // SQL 日志：true 时 Debug，false 时 Warn（生产默认，避免刷屏与配额打爆）。
+  bool debug = 10;
+}
+
+message Redis {
+  string host = 1;
+  int32 port = 2;
+  string password = 3;
+}
+
+message Server {
+  HTTP http = 1;
+}
+
+message HTTP {
+  string host = 1;
+  uint32 port = 2;
+  Pprof pprof = 3;
+  // CORS 白名单（精确匹配 Origin）。为空时使用内置的本地开发白名单。
+  repeated string cors_allow_origins = 4;
+  // 可信反向代理的 CIDR 白名单（如 10.0.0.0/8、127.0.0.1/32）。
+  //
+  // 只有 TCP 对端地址命中该列表时，才采信 X-Real-IP / X-Forwarded-For；
+  // 否则一律使用 TCP 对端地址——这两个请求头客户端可以随意伪造，
+  // 无条件采信会污染访问日志、审计与限流维度。
+  // 为空表示"不信任任何代理"，直连场景的正确取值。
+  repeated string trusted_proxies = 5;
+}
+
+message Pprof {
+  bool enable = 1;
+  string host = 2;
+  uint32 port = 3;
+}
+
+message Log {
+  string mode = 1;  // dev | prod
+  string level = 2; // debug | info | warn | error
+  string dir = 3;   // 日志目录；留空只输出控制台
+}
+
+// Security 身份相关配置。
+//
+// 终态由网关完成鉴权并通过 x-md-global-auth-* 传递身份；本服务在
+// trust_gateway_identity=true 时直接信任这些头，否则回退到本地 JWT 解析。
+message Security {
+  string jwt_secret = 1;             // 本地 JWT 校验密钥（HS256）
+  bool trust_gateway_identity = 2;   // 信任网关下发的身份头
+  bool require_auth = 3;             // 全局强制鉴权（默认 false：可选鉴权，仅填充身份）
+}
