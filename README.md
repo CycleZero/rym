@@ -6,7 +6,8 @@
 
 > 本仓库由 [`CycleZero/gin-template`](https://github.com/CycleZero/gin-template)
 > 脚手架初始化。传输层是 kratos `transport/http`（路由由 proto 生成）。
-> `app/demo` 是脚手架自带的示例模块，第一个真实业务模块落地后可以删除。
+> `app/demo` 是脚手架自带的示例模块，保留作为四层写法的活样板
+> （`app/im` 是第一个真实业务模块，实现参考它即可）。
 
 ## 技术栈
 
@@ -149,6 +150,67 @@ curl -X POST localhost:8000/v1/demos \
   -d '{"name":"demo","description":"hello"}'
 ```
 
+## IM 模块（v1）
+
+单聊 + ≤200 人小群，只做四件事：**发消息 / 拉历史 / 未读数 / 已读**。
+设计依据与取舍见 `docs/im-design-best-practices.md`，落地决策在 §16。
+
+| RPC | HTTP | 说明 |
+|---|---|---|
+| `SendMessage` | `POST /v1/im/messages` | `conversation_id=0` 时给 `to_user_id`，按双方 uid 派生单聊会话 |
+| `PullMessages` | `GET /v1/im/messages` | 游标分页：`before_seq` 翻历史 / `after_seq` 补洞，禁止 OFFSET |
+| `ListConversations` | `GET /v1/im/conversations` | 摘要 + 未读数 + 单聊对端已读位 |
+| `MarkRead` | `POST /v1/im/conversations/{id}/read` | `read_seq` 只增不减，乱序上报安全 |
+
+不可回退的约束：
+
+- `msg_id`（UUIDv7）管唯一，`seq`（会话内连续）管顺序，两者不混用；
+- `seq` 由 `conversations.last_seq` 在同一事务里加行锁分配（分配序 == 提交序）；
+- `(conversation_id, sender_id, client_msg_id)` 唯一键做幂等，重发返回首次分配的 `seq`；
+- 未读 = `(last_countable_seq - read_countable_seq) - (sent_seq - read_sender_seq)`，
+  可由水位重算，不用 `max_seq - read_seq`；
+- 非成员与不存在的会话统一 403，不泄漏会话是否存在。
+
+### 本地跑一遍闭环
+
+IM 接口需要已鉴权用户。本地最省事的做法是打开网关身份信任模式
+（**仅本地调试**，生产由网关下发这个头）：
+
+```bash
+cp config.yaml.example config.yaml && cp configs/im.yaml.example configs/im.yaml
+APP_TRUST_GATEWAY_IDENTITY=true ./bin/rym -conf config.yaml -im-conf configs/im.yaml
+
+# A(1) 给 B(2) 发消息（响应里的 data.message.conversation_id 是会话 id）
+curl -s localhost:8000/v1/im/messages -H 'Content-Type: application/json' \
+  -H 'x-md-global-auth-user-id: 1' \
+  -d '{"to_user_id":2,"client_msg_id":"c-1","type":1,"body":"{\"text\":\"hello\"}"}'
+
+# B 拉历史
+curl -s 'localhost:8000/v1/im/messages?conversation_id=1' -H 'x-md-global-auth-user-id: 2'
+
+# B 标记已读
+curl -s -X POST localhost:8000/v1/im/conversations/1/read \
+  -H 'Content-Type: application/json' -H 'x-md-global-auth-user-id: 2' \
+  -d '{"read_seq":1}'
+
+# A 看会话列表：data.list[0].peer_read_seq == 1 即闭环
+curl -s localhost:8000/v1/im/conversations -H 'x-md-global-auth-user-id: 1'
+```
+
+### 存储：MySQL 主库，SQLite 仅测试
+
+- 表结构两份等价 DDL：`app/im/migrations/001_init_mysql.sql`（生产）与
+  `001_init_sqlite.sql`（测试/单机）；改表必须两份一起改。
+- 数据层不用 `FOR UPDATE` / `ON DUPLICATE KEY` / `GREATEST` 等方言专用 SQL，
+  唯一分支是 MySQL 的 `SELECT ... FOR UPDATE`（`data.rowLock`）。
+- 测试默认跑 SQLite（`go test ./app/im/...`，无需任何外部服务）；
+  MySQL 真库验收用：
+
+```bash
+RYM_TEST_MYSQL_DSN='root:pass@tcp(127.0.0.1:3306)/rym_test?charset=utf8mb4&parseTime=True&loc=Local' \
+  go test ./app/im/internal/data -run TestMySQLAcceptance -v
+```
+
 ## 响应契约
 
 成功（业务数据统一在 `data` 下）：
@@ -228,7 +290,10 @@ gRPC client（`data/client/` 实现同一接口，组合根换一行 `wire.Bind`
 
 ## 已知限制 / 下一步
 
-- 未接入 API 网关：CORS/JWT/信封仍由本服务兜底（已留双模：`trust_gateway_identity`）；
+- IM v1 未接网关：CORS/JWT/信封仍由本服务兜底（已留双模：`trust_gateway_identity`）；
 - 未引入 etcd / 服务发现 / DTM（单库 + 单进程阶段不需要）；
 - 事件/outbox/MQ 尚未落地（`pkg/tx` 已就绪，outbox 在 P2 阶段接入）；
-- 分页仍是 offset（IM 深分页需改游标分页 `WHERE seq < ? ORDER BY seq DESC LIMIT n`）。
+- IM 没有在线推送与长连接网关：发消息只落库，客户端靠 `after_seq` 补洞；
+- IM 群聊只有存储模型，没有建群/成员管理 RPC（留给组织/群模块）；
+- IM 撤回/编辑/搜索未做，消息表已预留 `status` / `version` / `edited_at` / `body_text`；
+- `app/demo` 的分页仍是 offset；IM 消息历史已用游标（`seq < ?`）。
