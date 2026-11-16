@@ -28,7 +28,7 @@ config:
 
 # Wire 依赖注入代码生成（生成的 wire_gen.go 必须入库）
 wire:
-	go run -mod=mod github.com/google/wire/cmd/wire ./app/demo ./cmd/server
+	go run -mod=mod github.com/google/wire/cmd/wire ./app/demo ./app/im ./cmd/server
 
 # 编译
 build:
@@ -63,6 +63,10 @@ verify: fmt
 	@git diff --exit-code -- . ':(exclude)go.sum' || (echo "生成物与源码不同步：请提交 make config api wire 的结果"; exit 1)
 
 # 数据库迁移（编号 SQL，禁止 AutoMigrate）
+# 默认跑 MySQL：app/<svc>/migrations/*.sql 里除 *_sqlite.sql 之外的全部按文件名排序执行。
 migrate:
 	@test -n "$(DB_NAME)" || (echo "用法: make migrate DB_NAME=rym [DB_HOST=127.0.0.1 DB_PORT=3306 DB_USER=root DB_PASSWORD=xxx]"; exit 1)
-	mysql -h $${DB_HOST:-127.0.0.1} -P $${DB_PORT:-3306} -u $${DB_USER:-root} $${DB_PASSWORD:+-p$${DB_PASSWORD}} $${DB_NAME} < app/demo/migrations/001_init.sql
+	@for f in $$(find app -path '*/migrations/*.sql' ! -name '*_sqlite.sql' | sort); do \
+		echo "==> $$f"; \
+		mysql -h $${DB_HOST:-127.0.0.1} -P $${DB_PORT:-3306} -u $${DB_USER:-root} $${DB_PASSWORD:+-p$${DB_PASSWORD}} $(DB_NAME) < $$f || exit 1; \
+	done
