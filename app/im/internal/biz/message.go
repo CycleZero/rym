@@ -295,7 +295,14 @@ func (u *Usecase) PullMessages(ctx context.Context, in PullMessagesInput) (*Pull
 	if list == nil {
 		list = make([]*Message, 0)
 	}
-	return &PullMessagesResult{List: list, MaxSeq: conv.LastSeq, HasMore: hasMore}, nil
+	// 三个读不在同一事务里：若在 GetConversation 之后、ListMessages 之前
+	// 刚好进来一条新消息，返回的 list 会比 conv.LastSeq 新。以实际返回为准，
+	// 保证 max_seq 与 list 自洽（客户端不会因为 max_seq 偏小而误判漏消息）。
+	maxSeq := conv.LastSeq
+	if n := len(list); n > 0 && list[n-1].Seq > maxSeq {
+		maxSeq = list[n-1].Seq
+	}
+	return &PullMessagesResult{List: list, MaxSeq: maxSeq, HasMore: hasMore}, nil
 }
 
 // reverse 原地反转消息切片。
