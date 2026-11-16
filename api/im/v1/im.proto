@@ -1,0 +1,196 @@
+syntax = "proto3";
+
+// 包名约定：api.<svc>.<version>（与 api/demo/v1 一致）。
+// 这个包是**客户端唯一需要的东西**：Tauri / Flutter 直接用它生成类型。
+package api.im.v1;
+
+import "google/api/annotations.proto";
+
+option go_package = "github.com/CycleZero/rym/api/im/v1;v1";
+
+// ImService 是 IM 模块的对外契约（v1：单聊 + ≤200 人小群）。
+//
+// 路由统一 /v1/im/ 前缀，不带 /api（网关将来负责 rewrite）。
+//
+// 本版**只做**发消息、拉历史、会话列表、已读推进四件事。
+// 明确不做（留好字段/接口，见 docs/im-design-best-practices.md §16.2）：
+// 群扇出、WebSocket 网关、撤回/编辑、消息搜索、E2EE。
+service ImService {
+  // SendMessage 发送一条消息。
+  //
+  // conversation_id = 0 时必须给 to_user_id：服务端按「双方 uid 字典序」
+  // 派生稳定的单聊会话键，不存在则自动建会话（两个 participant）。
+  // 已有群聊直接传 conversation_id。
+  //
+  // 幂等：同一 (conversation_id, sender_id, client_msg_id) 重复提交，
+  // 返回**首次分配**的那条消息（同一个 seq），不会产生第二行。
+  rpc SendMessage(SendMessageRequest) returns (SendMessageResponse) {
+    option (google.api.http) = {
+      post: "/v1/im/messages"
+      body: "*"
+    };
+  }
+
+  // PullMessages 拉取消息（游标分页，禁止 OFFSET）。
+  //
+  //   - after_seq > 0：补洞，返回 seq > after_seq 的**升序**消息
+  //   - 否则：翻历史，返回 seq < before_seq 的最近 limit 条（返回仍为升序）
+  //   - before_seq = 0：从最新一条往前取
+  rpc PullMessages(PullMessagesRequest) returns (PullMessagesResponse) {
+    option (google.api.http) = {get: "/v1/im/messages"};
+  }
+
+  // ListConversations 当前用户的会话列表（摘要 + 未读数）。
+  rpc ListConversations(ListConversationsRequest) returns (ListConversationsResponse) {
+    option (google.api.http) = {get: "/v1/im/conversations"};
+  }
+
+  // MarkRead 推进已读位（只增不减）。
+  //
+  // read_seq 小于当前值时为空操作，乱序上报安全。
+  rpc MarkRead(MarkReadRequest) returns (MarkReadResponse) {
+    option (google.api.http) = {
+      post: "/v1/im/conversations/{conversation_id}/read"
+      body: "*"
+    };
+  }
+}
+
+// ConversationType 会话类型。
+enum ConversationType {
+  CONVERSATION_TYPE_UNSPECIFIED = 0;
+  // 单聊：conv_key = "s:<uid_small>:<uid_large>"，双方得到同一个会话。
+  CONVERSATION_TYPE_SINGLE = 1;
+  // 群聊：服务端创建（v1 暂未提供建群 RPC，由后续组织/群模块负责）。
+  CONVERSATION_TYPE_GROUP = 2;
+}
+
+// MessageType 消息类型。
+//
+// v1 只写库、不做类型特有的渲染：body 是 JSON 字符串，
+// 由客户端按 type 解释（文本就是 {"text":"..."}）。
+enum MessageType {
+  // 非法值：发送时会被拒绝（proto3 的零值无法表达“必填”）。
+  MESSAGE_TYPE_UNSPECIFIED = 0;
+  MESSAGE_TYPE_TEXT = 1;
+  MESSAGE_TYPE_IMAGE = 2;
+  MESSAGE_TYPE_FILE = 3;
+  MESSAGE_TYPE_AUDIO = 4;
+  MESSAGE_TYPE_VIDEO = 5;
+  // 系统消息：客户端不可发送；v1 系统消息不入消息表（见文档 §7.2）。
+  MESSAGE_TYPE_SYSTEM = 6;
+  MESSAGE_TYPE_CUSTOM = 7;
+}
+
+// Message 一条消息。
+message Message {
+  // 全局唯一、无顺序语义（UUIDv7 hex，32 字符）。
+  string msg_id = 1;
+  uint64 conversation_id = 2;
+  // 会话内连续序号，由服务端分配；客户端靠它发现漏消息。
+  int64 seq = 3;
+  uint64 sender_id = 4;
+  // 客户端生成的幂等键：重发必须复用同一个值。
+  string client_msg_id = 5;
+  MessageType type = 6;
+  // 结构化 JSON（type 不同结构不同，为卡片/Bot 留扩展）。
+  string body = 7;
+  // 0=正常 1=撤回 2=删除 3=屏蔽（v1 只会写 0）。
+  int32 status = 8;
+  // 引用回复的消息 msg_id（空表示不引用）。
+  string reply_to = 9;
+  // 编辑次数（v1 恒为 1）。
+  int32 version = 10;
+  // RFC3339；排序不依赖它，但展示要用。
+  string created_at = 11;
+  string edited_at = 12;
+}
+
+// Conversation 会话摘要（会话列表用，不含完整历史）。
+message Conversation {
+  uint64 id = 1;
+  ConversationType type = 2;
+  // 会话当前最大 seq。
+  int64 last_seq = 3;
+  // 我的已读位。
+  int64 read_seq = 4;
+  // 我的未读数（服务端按 countable_seq 水位计算，可自愈）。
+  int64 unread_count = 5;
+  // 我的会话状态版本号（置顶/免打扰/已读变更时 +1，多端增量同步用）。
+  int64 version = 6;
+  // 最后一条消息（可能为空：会话刚建、还没发消息）。
+  Message last_message = 7;
+  bool pinned = 8;
+  bool muted = 9;
+  string joined_at = 10;
+  // 单聊对端的已读位（A 能看到 B 读到哪了）。
+  // 群聊暂为 0：群已读回执需要按成员聚合，v1 不做（留字段避免以后改契约）。
+  int64 peer_read_seq = 11;
+}
+
+message SendMessageRequest {
+  // 已有会话直接给 id；为 0 时用 to_user_id 派生单聊会话。
+  uint64 conversation_id = 1;
+  // 单聊对端用户 id（conversation_id = 0 时必填）。
+  uint64 to_user_id = 2;
+  // 幂等键，必填；重发复用同一个值。
+  string client_msg_id = 3;
+  MessageType type = 4;
+  // JSON 字符串；非法 JSON 会被拒绝。
+  string body = 5;
+  // 引用回复的消息 msg_id，可空。
+  string reply_to = 6;
+}
+
+message SendMessageResponse {
+  Message message = 1;
+  // true 表示命中了幂等键，返回的是首次落库的那条。
+  bool duplicated = 2;
+  // 会话当前最大 seq（发送者据此刻度本地游标）。
+  int64 last_seq = 3;
+}
+
+message PullMessagesRequest {
+  uint64 conversation_id = 1;
+  // 翻历史：取 seq < before_seq 的最近 limit 条；0 表示从最新往前取。
+  int64 before_seq = 2;
+  // 补洞：取 seq > after_seq 的消息；与 before_seq 互斥。
+  int64 after_seq = 3;
+  // 0 表示使用服务端默认值；超过上限会被截断。
+  int32 limit = 4;
+}
+
+message PullMessagesResponse {
+  // 始终按 seq 升序返回，客户端可直接追加。
+  repeated Message list = 1;
+  // 会话当前最大 seq（客户端据此判断还缺不缺）。
+  int64 max_seq = 2;
+  // 本次之后是否还有更老（before_seq 模式）或更新（after_seq 模式）的消息。
+  bool has_more = 3;
+}
+
+message ListConversationsRequest {
+  // 0 表示使用服务端默认值；超过上限会被截断。
+  int32 limit = 1;
+}
+
+message ListConversationsResponse {
+  repeated Conversation list = 1;
+  // 会话状态版本号总和（诊断用；v1 不做增量同步）。
+  int64 max_version = 2;
+}
+
+message MarkReadRequest {
+  uint64 conversation_id = 1;
+  // 读到的消息 seq；大于会话最大 seq 时按最大 seq 截断。
+  int64 read_seq = 2;
+}
+
+message MarkReadResponse {
+  // 推进后的已读位（只增不减）。
+  int64 read_seq = 1;
+  // 推进后的未读数。
+  int64 unread_count = 2;
+  // 当前会话状态版本号。
+  int64 version = 3;
+}

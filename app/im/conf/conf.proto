@@ -1,0 +1,17 @@
+syntax = "proto3";
+
+package im.conf;
+
+option go_package = "github.com/CycleZero/rym/app/im/conf;conf";
+
+// Config 是 IM 服务的**自有配置**（拆分微服务时整目录搬走）。
+//
+// 进程级配置（DB/Redis/日志/OTel）不在这里：见仓库根 conf/common.proto。
+message Config {
+  // 拉历史/会话列表的默认条数；0 表示使用代码内默认值。
+  uint32 default_page_size = 1;
+  // 单次请求允许的最大条数；0 表示使用代码内默认值。
+  uint32 max_page_size = 2;
+  // 单条消息 body 的字节上限；0 表示使用代码内默认值。
+  uint32 max_body_bytes = 3;
+}

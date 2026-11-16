@@ -1,0 +1,11 @@
+# IM 服务自有配置（configs/*.yaml 被 gitignore，只提交本示例）
+#
+# 通过 ./bin/rym -im-conf configs/im.yaml 指定；文件缺失时使用代码内默认值。
+# 注意：这里只放**业务参数**，DB/Redis/日志/OTel 等进程级配置在 config.yaml。
+
+# 拉历史 / 会话列表的默认条数
+default_page_size: 20
+# 单次请求允许的最大条数（超出截断，不报错）
+max_page_size: 100
+# 单条消息 body 的字节上限（图片/文件只存引用，不塞字节）
+max_body_bytes: 65536
