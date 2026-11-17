@@ -18,7 +18,7 @@ const (
 	// DefaultBcryptCost bcrypt.DefaultCost（10），单次哈希约几十毫秒。
 	DefaultBcryptCost uint32 = uint32(bcrypt.DefaultCost)
 	// DefaultConfigPath 服务自有配置默认路径。
-	DefaultConfigPath = "configs/user.yaml"
+	DefaultConfigPath = "configs/user/config.yaml"
 )
 
 // Load 读取 user 服务自有配置。

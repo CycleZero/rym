@@ -16,7 +16,7 @@ const (
 )
 
 // 服务自有配置默认路径；拆分微服务后由该服务的 main 传入。
-const DefaultPath = "configs/demo.yaml"
+const DefaultPath = "configs/demo/config.yaml"
 
 // Load 读取 demo 服务自有配置。
 //

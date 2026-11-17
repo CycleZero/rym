@@ -1,6 +1,6 @@
-# 用户服务自有配置（configs/*.yaml 被 gitignore，只提交本示例）
+# 用户服务自有配置（configs/<svc>/config.yaml 被 gitignore，只提交本示例）
 #
-# 通过 ./bin/rym -user-conf configs/user.yaml 指定；文件缺失时使用代码内默认值。
+# 通过 ./bin/rym -user-conf configs/user/config.yaml 指定；文件缺失时使用代码内默认值。
 # 注意：JWT 密钥不在这里，它是进程级配置 security.jwt_secret（config.yaml）。
 
 # 登录令牌有效期（秒）。默认 7 天。
