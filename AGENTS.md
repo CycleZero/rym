@@ -111,7 +111,7 @@ cmd/server
 **业务配置一律进 conf/proto，禁止环境变量。**
 
 1. 进程级配置：`conf/common.proto`（server/log/otel/data/security）。
-2. 服务级配置：`app/<svc>/conf/conf.proto`，文件默认 `configs/<svc>.yaml`。
+2. 服务级配置：`app/<svc>/conf/conf.proto`，文件默认 `configs/<svc>/config.yaml`。
 3. 通过 Wire 注入：`Load()` 返回结构体，由组合根显式传递；**不设配置全局**。
 4. 需要 `os.Getenv` / `os.LookupEnv` 读业务配置 → **不合格，直接打回**。
 
@@ -124,9 +124,24 @@ cmd/server
   - `security.require_auth=true` 且没有 `jwt_secret` → 启动失败。
   - 需要签发登录令牌的服务（当前 `app/user`）在 `jwt_secret` 为空时 **启动失败**，不要等到运行期登录 500。
 - 服务配置文件缺失 → 单体阶段用默认值（拆分后应改为 fail-fast）。
-- **`config.yaml` 已 gitignore，不要提交**；只提交 `configs/<svc>.yaml.example` 和根目录 `config.yaml.example`。
+- **`config.yaml` 已 gitignore，不要提交**；只提交 `configs/<svc>/config.yaml.example` 和根目录 `config.yaml.example`。
 - 业务配置禁止用包级变量缓存；`Load` 的结果显式注入。
 - 配置字段用 snake_case，与 protojson 键一一对应；缺省值在 `config.go` 的 `Validate()` 里补齐，不要在业务代码里散落 `if x == 0`。
+
+### 配置中心（etcd）
+
+- key 约定：`<prefix>/<env>/configs/<svc>/config.yaml`，默认即
+  `rym/dev/configs/im/config.yaml`。`prefix` / `env` 在进程级 `config.yaml` 的
+  `etcd` 段配置，生产必须显式设置 `env`。
+- 一个 scope 一个文档、**精确 key**：不要 `WithPrefix` 扫 `configs/<svc>/`，
+  否则以后新增文件会被合并，破坏“一次 PUT = 一次原子更新”。
+- `etcd.endpoints` 为空 = 只用本地 `configs/<svc>/config.yaml`；配置了 etcd 后
+  启动时 key 缺失/解码失败/校验失败一律启动失败（fail-closed）。
+- 运行期非法更新或删除 key 保留上一版；watch 断开后全量重载一次。
+- 热更新只给**每次请求读快照**的消费者：`biz` 侧用 `SettingsProvider`，
+  每个用例入口读一次，不能把 `Settings` 按值存进 Usecase。
+- 目前只有 im 接入；demo/user 仍启动时读本地配置，不要假设它们会热更新。
+- 进程级基础设施配置（DB/Redis/监听/OTel）**不要**放进动态配置。
 
 ---
 
@@ -420,6 +435,8 @@ make fmt / tidy                         # 格式化 / 依赖整理（静态检�
 
 - `config.yaml`、`bin/`、`data/`、`temp/` 已 gitignore，不要提交。
 - SQLite 迁移不通过 make 执行，由测试加载；本机没有 `sqlite3` CLI 不影响测试。
+- 业务配置：etcd key `rym/{env}/configs/<svc>/config.yaml`；未配置 etcd 时读
+  `configs/<svc>/config.yaml`。目前只有 im 接入热更新。
 
 ---
 
@@ -478,6 +495,9 @@ make fmt / tidy                         # 格式化 / 依赖整理（静态检�
 | 33 | 用 fake repo 验 DB 语义 | 真实 SQLite + 可选 MySQL |
 | 34 | `make verify` 时工作区有无关改动 | 先提交/stash |
 | 35 | 忘了 `visible_from_seq` | 开放群聊前必须按 seq 裁剪 |
+| 36 | etcd key 漏了 env / 用前缀扫描 | 精确读 `<prefix>/<env>/configs/<svc>/config.yaml` |
+| 37 | 把 `Settings` 按值存进 Usecase | 注入 `SettingsProvider`，每次用例入口读一次 |
+| 38 | 动态配置里放 DB/监听/密钥 | 只放纯业务值；资源类配置启动时读一次 |
 
 ---
 

@@ -214,9 +214,9 @@ IM 接口需要已鉴权用户。先注册两个用户、拿到令牌，再用 `
 
 ```bash
 cp config.yaml.example config.yaml
-cp configs/im.yaml.example configs/im.yaml
-cp configs/user.yaml.example configs/user.yaml
-JWT_SECRET=dev-secret ./bin/rym -conf config.yaml -im-conf configs/im.yaml -user-conf configs/user.yaml
+cp configs/im/config.yaml.example configs/im/config.yaml
+cp configs/user/config.yaml.example configs/user/config.yaml
+JWT_SECRET=dev-secret ./bin/rym -conf config.yaml -im-conf configs/im/config.yaml -user-conf configs/user/config.yaml
 
 # 注册 alice / bob（响应里的 data.id 就是 user_id）
 curl -s localhost:8000/v1/users/register -H 'Content-Type: application/json' \
@@ -248,6 +248,25 @@ curl -s localhost:8000/v1/im/conversations -H "Authorization: Bearer $A"
 
 > 网关模式下也可以不签发本地令牌：设置 `APP_TRUST_GATEWAY_IDENTITY=true`，
 > 改发 `x-md-global-auth-user-id: <uid>`。这只用于本地调试，生产由网关负责。
+
+### 配置来源：etcd（可选，im 已接入）
+
+- key：`rym/{env}/configs/im/config.yaml`（`prefix` / `env` 在 `config.yaml` 的
+  `etcd` 段配置，默认 `rym` / `dev`）。
+- `etcd.endpoints` 为空：只读本地 `configs/im/config.yaml`，改完重启生效。
+- 配置了 etcd：启动时读取该 key 并 watch；一次 PUT = 一次原子更新，不做字段级合并。
+  启动时 key 缺失 / 解码 / 校验失败都会直接失败（fail-closed）。
+- 运行期非法更新或删除 key：保留上一版，打日志等下一次变更。
+- 目前只有 im 的 Settings 每请求读快照；demo / user 仍启动时读本地配置。
+
+```yaml
+# config.yaml
+etcd:
+  endpoints: ["127.0.0.1:2379"]
+  prefix: "rym"
+  env: "dev"
+  dial_timeout_seconds: 3
+```
 
 ### 存储：MySQL 主库，SQLite 仅测试
 
@@ -286,9 +305,9 @@ RYM_TEST_MYSQL_DSN='root:pass@tcp(127.0.0.1:3306)/rym_test?charset=utf8mb4&parse
 ## 配置
 
 - **进程级**：`conf/common.proto`（server/log/otel/data/security）。
-- **服务级**：`app/<svc>/conf/conf.proto`，文件默认 `configs/<svc>.yaml`（示例见
-  `configs/{demo,im,user}.yaml.example`，分别用 `-demo-conf` / `-im-conf` / `-user-conf`
-  指定路径），缺失时用默认值。
+- **服务级**：`app/<svc>/conf/conf.proto`，文件默认 `configs/<svc>/config.yaml`（示例见
+  `configs/{demo,im,user}/config.yaml.example`，分别用 `-demo-conf` / `-im-conf` /
+  `-user-conf` 指定路径），缺失时用默认值。
 - 环境变量只用于**部署覆盖**：`config.yaml` 里写成 `${KEY:default}` 的字段才能被
   `APP_KEY` 覆盖；禁止用 `os.Getenv` 读业务配置。
 - 安全配置 fail-closed：`security.require_auth=true` 且没有 `jwt_secret` 时启动失败；
