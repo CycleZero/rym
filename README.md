@@ -135,19 +135,56 @@ func initApp(bc *conf.Bootstrap, demoCfg *democonf.Config, logger *slog.Logger) 
 ```bash
 cp config.yaml.example config.yaml      # 按需改 DB/Redis
 make build                              # 或 make rebuild（含代码生成）
-make migrate DB_NAME=rym       # 建表（编号 SQL，非 AutoMigrate）
-./bin/rym -conf config.yaml
+make migrate DB_NAME=rym                # 建表（编号 SQL，非 AutoMigrate）
+JWT_SECRET=dev-secret ./bin/rym -conf config.yaml
 ```
+
+> `JWT_SECRET` 是登录令牌的签名密钥（`security.jwt_secret`）。
+> 用户服务在它为空时**启动失败**，避免带病运行；本地随便给一个开发值即可。
 
 常用接口：
 
 ```bash
 curl localhost:8000/healthz            # 存活探针
 curl localhost:8000/readyz             # 就绪探针（MySQL/Redis）
-curl localhost:8000/v1/demos           # 列表
+curl localhost:8000/v1/demos           # demo 列表
 curl -X POST localhost:8000/v1/demos \
   -H 'Content-Type: application/json' \
   -d '{"name":"demo","description":"hello"}'
+```
+
+## 用户模块（v1）
+
+只做三件事：**注册 / 登录 / 当前用户**。令牌是 HS256 JWT，
+后续请求用 `Authorization: Bearer <token>`（由 `pkg/transport` 统一校验）。
+
+| RPC | HTTP | 说明 |
+|---|---|---|
+| `Register` | `POST /v1/users/register` | 用户名统一转小写；密码 bcrypt 存储，永不下发 |
+| `Login` | `POST /v1/users/login` | 返回 `access_token` / `expires_at` / `user` |
+| `GetMe` | `GET /v1/users/me` | 校验令牌与账号状态 |
+
+不可回退的约束：
+
+- 密码用 bcrypt（生产 cost=10），限制 8-72 字节；明文/哈希都不进日志、不进响应；
+- 用户名统一小写后存储，避免 MySQL 大小写不敏感、SQLite 大小写敏感的跨库差异；
+- 用户不存在与密码错误返回**同一个 401**，且未知用户也做一次 dummy bcrypt，
+  避免通过错误信息或响应时间枚举账号；
+- 账号禁用只在密码校验通过后提示；
+- `security.require_auth` 是**全局**开关，打开会连注册/登录一起拦。单体阶段保持
+  `false`，受保护接口由 handler 自己检查 `UserID == 0` 返回 401。
+
+```bash
+# 注册
+curl -s localhost:8000/v1/users/register -H 'Content-Type: application/json' \
+  -d '{"username":"alice","password":"password123","nickname":"Alice"}'
+
+# 登录（把 access_token 存到变量）
+TOKEN=$(curl -s localhost:8000/v1/users/login -H 'Content-Type: application/json' \
+  -d '{"username":"alice","password":"password123"}' | jq -r '.data.access_token')
+
+# 当前用户
+curl -s localhost:8000/v1/users/me -H "Authorization: Bearer $TOKEN"
 ```
 
 ## IM 模块（v1）
@@ -173,29 +210,44 @@ curl -X POST localhost:8000/v1/demos \
 
 ### 本地跑一遍闭环
 
-IM 接口需要已鉴权用户。本地最省事的做法是打开网关身份信任模式
-（**仅本地调试**，生产由网关下发这个头）：
+IM 接口需要已鉴权用户。先注册两个用户、拿到令牌，再用 `Authorization: Bearer`：
 
 ```bash
-cp config.yaml.example config.yaml && cp configs/im.yaml.example configs/im.yaml
-APP_TRUST_GATEWAY_IDENTITY=true ./bin/rym -conf config.yaml -im-conf configs/im.yaml
+cp config.yaml.example config.yaml
+cp configs/im.yaml.example configs/im.yaml
+cp configs/user.yaml.example configs/user.yaml
+JWT_SECRET=dev-secret ./bin/rym -conf config.yaml -im-conf configs/im.yaml -user-conf configs/user.yaml
 
-# A(1) 给 B(2) 发消息（响应里的 data.message.conversation_id 是会话 id）
-curl -s localhost:8000/v1/im/messages -H 'Content-Type: application/json' \
-  -H 'x-md-global-auth-user-id: 1' \
-  -d '{"to_user_id":2,"client_msg_id":"c-1","type":1,"body":"{\"text\":\"hello\"}"}'
+# 注册 alice / bob（响应里的 data.id 就是 user_id）
+curl -s localhost:8000/v1/users/register -H 'Content-Type: application/json' \
+  -d '{"username":"alice","password":"password123"}'
+curl -s localhost:8000/v1/users/register -H 'Content-Type: application/json' \
+  -d '{"username":"bob","password":"password123"}'
 
-# B 拉历史
-curl -s 'localhost:8000/v1/im/messages?conversation_id=1' -H 'x-md-global-auth-user-id: 2'
+A=$(curl -s localhost:8000/v1/users/login -H 'Content-Type: application/json' \
+  -d '{"username":"alice","password":"password123"}' | jq -r '.data.access_token')
+B=$(curl -s localhost:8000/v1/users/login -H 'Content-Type: application/json' \
+  -d '{"username":"bob","password":"password123"}' | jq -r '.data.access_token')
 
-# B 标记已读
-curl -s -X POST localhost:8000/v1/im/conversations/1/read \
-  -H 'Content-Type: application/json' -H 'x-md-global-auth-user-id: 2' \
-  -d '{"read_seq":1}'
+# alice(1) 给 bob(2) 发消息；响应里的 data.message.conversation_id 是会话 id
+CONV=$(curl -s localhost:8000/v1/im/messages -H 'Content-Type: application/json' \
+  -H "Authorization: Bearer $A" \
+  -d '{"to_user_id":2,"client_msg_id":"c-1","type":1,"body":"{\"text\":\"hello\"}"}' \
+  | jq -r '.data.message.conversation_id')
 
-# A 看会话列表：data.list[0].peer_read_seq == 1 即闭环
-curl -s localhost:8000/v1/im/conversations -H 'x-md-global-auth-user-id: 1'
+# bob 拉历史
+curl -s "localhost:8000/v1/im/messages?conversation_id=$CONV" -H "Authorization: Bearer $B"
+
+# bob 标记已读
+curl -s -X POST "localhost:8000/v1/im/conversations/$CONV/read" \
+  -H 'Content-Type: application/json' -H "Authorization: Bearer $B" -d '{"read_seq":1}'
+
+# alice 看会话列表：data.list[0].peer_read_seq == 1 即闭环
+curl -s localhost:8000/v1/im/conversations -H "Authorization: Bearer $A"
 ```
+
+> 网关模式下也可以不签发本地令牌：设置 `APP_TRUST_GATEWAY_IDENTITY=true`，
+> 改发 `x-md-global-auth-user-id: <uid>`。这只用于本地调试，生产由网关负责。
 
 ### 存储：MySQL 主库，SQLite 仅测试
 
@@ -235,10 +287,12 @@ RYM_TEST_MYSQL_DSN='root:pass@tcp(127.0.0.1:3306)/rym_test?charset=utf8mb4&parse
 
 - **进程级**：`conf/common.proto`（server/log/otel/data/security）。
 - **服务级**：`app/<svc>/conf/conf.proto`，文件默认 `configs/<svc>.yaml`（示例见
-  `configs/demo.yaml.example`，用 `-demo-conf` 指定路径），缺失时用默认值。
+  `configs/{demo,im,user}.yaml.example`，分别用 `-demo-conf` / `-im-conf` / `-user-conf`
+  指定路径），缺失时用默认值。
 - 环境变量只用于**部署覆盖**：`config.yaml` 里写成 `${KEY:default}` 的字段才能被
   `APP_KEY` 覆盖；禁止用 `os.Getenv` 读业务配置。
-- 安全配置 fail-closed：`security.require_auth=true` 且没有 `jwt_secret` 时启动失败。
+- 安全配置 fail-closed：`security.require_auth=true` 且没有 `jwt_secret` 时启动失败；
+  用户服务签发登录令牌也要求 `jwt_secret` 非空，否则启动失败。
 - `server.http.trusted_proxies`：可信反向代理 CIDR 白名单。只有 TCP 对端命中它，
   才采信 `X-Real-IP` / `X-Forwarded-For`；留空（默认）表示谁都不信，直连场景的正确取值。
 
@@ -296,4 +350,6 @@ gRPC client（`data/client/` 实现同一接口，组合根换一行 `wire.Bind`
 - IM 没有在线推送与长连接网关：发消息只落库，客户端靠 `after_seq` 补洞；
 - IM 群聊只有存储模型，没有建群/成员管理 RPC（留给组织/群模块）；
 - IM 撤回/编辑/搜索未做，消息表已预留 `status` / `version` / `edited_at` / `body_text`；
+- 用户模块没有找回密码、第三方登录、刷新令牌、角色权限；
+- 用户模块登录没有限流/验证码，账号枚举只做了错误信息与耗时对齐；
 - `app/demo` 的分页仍是 offset；IM 消息历史已用游标（`seq < ?`）。

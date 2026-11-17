@@ -52,7 +52,8 @@ log:
   dir: "${LOG_DIR:./data/log}"
 
 # 身份相关。终态由网关鉴权并下发 x-md-global-auth-user-id；
-# 单体阶段可回退到本地 JWT（HS256）。
+# 单体阶段可回退到本地 JWT（HS256）。user 服务签发登录令牌也必须配置此项，
+# 留空会导致启动失败。本地可用 JWT_SECRET=dev-secret 覆盖。
 security:
   jwt_secret: "${JWT_SECRET:}"
   trust_gateway_identity: "${TRUST_GATEWAY_IDENTITY:false}"
