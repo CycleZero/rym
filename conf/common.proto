@@ -17,6 +17,19 @@ message Bootstrap {
   Otel otel = 3;
   Data data = 4;
   Security security = 5;
+  Etcd etcd = 6;
+}
+
+// Etcd 业务配置中心（v1 只有 im 接入热更新，其余服务仍读本地文件）。
+//
+// key 约定：<prefix>/<env>/configs/<svc>/config.yaml
+//   prefix 缺省 rym，env 缺省 dev，例如 rym/dev/configs/im/config.yaml。
+// endpoints 留空表示不启用 etcd，服务退回本地 configs/<svc>/config.yaml。
+message Etcd {
+  repeated string endpoints = 1;       // 如 127.0.0.1:2379
+  string prefix = 2;                   // 缺省 rym
+  string env = 3;                      // 缺省 dev；生产必须显式设置
+  uint32 dial_timeout_seconds = 4;     // 缺省 3s
 }
 
 // Otel 可观测性配置：一个端点驱动 trace / metrics / logs 三路 OTLP/HTTP 推送。

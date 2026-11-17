@@ -35,6 +35,7 @@ type Bootstrap struct {
 	Otel          *Otel                  `protobuf:"bytes,3,opt,name=otel,proto3" json:"otel,omitempty"`
 	Data          *Data                  `protobuf:"bytes,4,opt,name=data,proto3" json:"data,omitempty"`
 	Security      *Security              `protobuf:"bytes,5,opt,name=security,proto3" json:"security,omitempty"`
+	Etcd          *Etcd                  `protobuf:"bytes,6,opt,name=etcd,proto3" json:"etcd,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -104,6 +105,88 @@ func (x *Bootstrap) GetSecurity() *Security {
 	return nil
 }
 
+func (x *Bootstrap) GetEtcd() *Etcd {
+	if x != nil {
+		return x.Etcd
+	}
+	return nil
+}
+
+// Etcd 业务配置中心（v1 只有 im 接入热更新，其余服务仍读本地文件）。
+//
+// key 约定：<prefix>/<env>/configs/<svc>/config.yaml
+//
+//	prefix 缺省 rym，env 缺省 dev，例如 rym/dev/configs/im/config.yaml。
+//
+// endpoints 留空表示不启用 etcd，服务退回本地 configs/<svc>/config.yaml。
+type Etcd struct {
+	state              protoimpl.MessageState `protogen:"open.v1"`
+	Endpoints          []string               `protobuf:"bytes,1,rep,name=endpoints,proto3" json:"endpoints,omitempty"`                                                // 如 127.0.0.1:2379
+	Prefix             string                 `protobuf:"bytes,2,opt,name=prefix,proto3" json:"prefix,omitempty"`                                                      // 缺省 rym
+	Env                string                 `protobuf:"bytes,3,opt,name=env,proto3" json:"env,omitempty"`                                                            // 缺省 dev；生产必须显式设置
+	DialTimeoutSeconds uint32                 `protobuf:"varint,4,opt,name=dial_timeout_seconds,json=dialTimeoutSeconds,proto3" json:"dial_timeout_seconds,omitempty"` // 缺省 3s
+	unknownFields      protoimpl.UnknownFields
+	sizeCache          protoimpl.SizeCache
+}
+
+func (x *Etcd) Reset() {
+	*x = Etcd{}
+	mi := &file_common_proto_msgTypes[1]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *Etcd) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*Etcd) ProtoMessage() {}
+
+func (x *Etcd) ProtoReflect() protoreflect.Message {
+	mi := &file_common_proto_msgTypes[1]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use Etcd.ProtoReflect.Descriptor instead.
+func (*Etcd) Descriptor() ([]byte, []int) {
+	return file_common_proto_rawDescGZIP(), []int{1}
+}
+
+func (x *Etcd) GetEndpoints() []string {
+	if x != nil {
+		return x.Endpoints
+	}
+	return nil
+}
+
+func (x *Etcd) GetPrefix() string {
+	if x != nil {
+		return x.Prefix
+	}
+	return ""
+}
+
+func (x *Etcd) GetEnv() string {
+	if x != nil {
+		return x.Env
+	}
+	return ""
+}
+
+func (x *Etcd) GetDialTimeoutSeconds() uint32 {
+	if x != nil {
+		return x.DialTimeoutSeconds
+	}
+	return 0
+}
+
 // Otel 可观测性配置：一个端点驱动 trace / metrics / logs 三路 OTLP/HTTP 推送。
 type Otel struct {
 	state                  protoimpl.MessageState `protogen:"open.v1"`
@@ -123,7 +206,7 @@ type Otel struct {
 
 func (x *Otel) Reset() {
 	*x = Otel{}
-	mi := &file_common_proto_msgTypes[1]
+	mi := &file_common_proto_msgTypes[2]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -135,7 +218,7 @@ func (x *Otel) String() string {
 func (*Otel) ProtoMessage() {}
 
 func (x *Otel) ProtoReflect() protoreflect.Message {
-	mi := &file_common_proto_msgTypes[1]
+	mi := &file_common_proto_msgTypes[2]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -148,7 +231,7 @@ func (x *Otel) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use Otel.ProtoReflect.Descriptor instead.
 func (*Otel) Descriptor() ([]byte, []int) {
-	return file_common_proto_rawDescGZIP(), []int{1}
+	return file_common_proto_rawDescGZIP(), []int{2}
 }
 
 func (x *Otel) GetEndpoint() string {
@@ -232,7 +315,7 @@ type Data struct {
 
 func (x *Data) Reset() {
 	*x = Data{}
-	mi := &file_common_proto_msgTypes[2]
+	mi := &file_common_proto_msgTypes[3]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -244,7 +327,7 @@ func (x *Data) String() string {
 func (*Data) ProtoMessage() {}
 
 func (x *Data) ProtoReflect() protoreflect.Message {
-	mi := &file_common_proto_msgTypes[2]
+	mi := &file_common_proto_msgTypes[3]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -257,7 +340,7 @@ func (x *Data) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use Data.ProtoReflect.Descriptor instead.
 func (*Data) Descriptor() ([]byte, []int) {
-	return file_common_proto_rawDescGZIP(), []int{2}
+	return file_common_proto_rawDescGZIP(), []int{3}
 }
 
 func (x *Data) GetDb() *DB {
@@ -294,7 +377,7 @@ type DB struct {
 
 func (x *DB) Reset() {
 	*x = DB{}
-	mi := &file_common_proto_msgTypes[3]
+	mi := &file_common_proto_msgTypes[4]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -306,7 +389,7 @@ func (x *DB) String() string {
 func (*DB) ProtoMessage() {}
 
 func (x *DB) ProtoReflect() protoreflect.Message {
-	mi := &file_common_proto_msgTypes[3]
+	mi := &file_common_proto_msgTypes[4]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -319,7 +402,7 @@ func (x *DB) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use DB.ProtoReflect.Descriptor instead.
 func (*DB) Descriptor() ([]byte, []int) {
-	return file_common_proto_rawDescGZIP(), []int{3}
+	return file_common_proto_rawDescGZIP(), []int{4}
 }
 
 func (x *DB) GetHost() string {
@@ -403,7 +486,7 @@ type Redis struct {
 
 func (x *Redis) Reset() {
 	*x = Redis{}
-	mi := &file_common_proto_msgTypes[4]
+	mi := &file_common_proto_msgTypes[5]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -415,7 +498,7 @@ func (x *Redis) String() string {
 func (*Redis) ProtoMessage() {}
 
 func (x *Redis) ProtoReflect() protoreflect.Message {
-	mi := &file_common_proto_msgTypes[4]
+	mi := &file_common_proto_msgTypes[5]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -428,7 +511,7 @@ func (x *Redis) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use Redis.ProtoReflect.Descriptor instead.
 func (*Redis) Descriptor() ([]byte, []int) {
-	return file_common_proto_rawDescGZIP(), []int{4}
+	return file_common_proto_rawDescGZIP(), []int{5}
 }
 
 func (x *Redis) GetHost() string {
@@ -461,7 +544,7 @@ type Server struct {
 
 func (x *Server) Reset() {
 	*x = Server{}
-	mi := &file_common_proto_msgTypes[5]
+	mi := &file_common_proto_msgTypes[6]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -473,7 +556,7 @@ func (x *Server) String() string {
 func (*Server) ProtoMessage() {}
 
 func (x *Server) ProtoReflect() protoreflect.Message {
-	mi := &file_common_proto_msgTypes[5]
+	mi := &file_common_proto_msgTypes[6]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -486,7 +569,7 @@ func (x *Server) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use Server.ProtoReflect.Descriptor instead.
 func (*Server) Descriptor() ([]byte, []int) {
-	return file_common_proto_rawDescGZIP(), []int{5}
+	return file_common_proto_rawDescGZIP(), []int{6}
 }
 
 func (x *Server) GetHttp() *HTTP {
@@ -516,7 +599,7 @@ type HTTP struct {
 
 func (x *HTTP) Reset() {
 	*x = HTTP{}
-	mi := &file_common_proto_msgTypes[6]
+	mi := &file_common_proto_msgTypes[7]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -528,7 +611,7 @@ func (x *HTTP) String() string {
 func (*HTTP) ProtoMessage() {}
 
 func (x *HTTP) ProtoReflect() protoreflect.Message {
-	mi := &file_common_proto_msgTypes[6]
+	mi := &file_common_proto_msgTypes[7]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -541,7 +624,7 @@ func (x *HTTP) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use HTTP.ProtoReflect.Descriptor instead.
 func (*HTTP) Descriptor() ([]byte, []int) {
-	return file_common_proto_rawDescGZIP(), []int{6}
+	return file_common_proto_rawDescGZIP(), []int{7}
 }
 
 func (x *HTTP) GetHost() string {
@@ -590,7 +673,7 @@ type Pprof struct {
 
 func (x *Pprof) Reset() {
 	*x = Pprof{}
-	mi := &file_common_proto_msgTypes[7]
+	mi := &file_common_proto_msgTypes[8]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -602,7 +685,7 @@ func (x *Pprof) String() string {
 func (*Pprof) ProtoMessage() {}
 
 func (x *Pprof) ProtoReflect() protoreflect.Message {
-	mi := &file_common_proto_msgTypes[7]
+	mi := &file_common_proto_msgTypes[8]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -615,7 +698,7 @@ func (x *Pprof) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use Pprof.ProtoReflect.Descriptor instead.
 func (*Pprof) Descriptor() ([]byte, []int) {
-	return file_common_proto_rawDescGZIP(), []int{7}
+	return file_common_proto_rawDescGZIP(), []int{8}
 }
 
 func (x *Pprof) GetEnable() bool {
@@ -650,7 +733,7 @@ type Log struct {
 
 func (x *Log) Reset() {
 	*x = Log{}
-	mi := &file_common_proto_msgTypes[8]
+	mi := &file_common_proto_msgTypes[9]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -662,7 +745,7 @@ func (x *Log) String() string {
 func (*Log) ProtoMessage() {}
 
 func (x *Log) ProtoReflect() protoreflect.Message {
-	mi := &file_common_proto_msgTypes[8]
+	mi := &file_common_proto_msgTypes[9]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -675,7 +758,7 @@ func (x *Log) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use Log.ProtoReflect.Descriptor instead.
 func (*Log) Descriptor() ([]byte, []int) {
-	return file_common_proto_rawDescGZIP(), []int{8}
+	return file_common_proto_rawDescGZIP(), []int{9}
 }
 
 func (x *Log) GetMode() string {
@@ -714,7 +797,7 @@ type Security struct {
 
 func (x *Security) Reset() {
 	*x = Security{}
-	mi := &file_common_proto_msgTypes[9]
+	mi := &file_common_proto_msgTypes[10]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -726,7 +809,7 @@ func (x *Security) String() string {
 func (*Security) ProtoMessage() {}
 
 func (x *Security) ProtoReflect() protoreflect.Message {
-	mi := &file_common_proto_msgTypes[9]
+	mi := &file_common_proto_msgTypes[10]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -739,7 +822,7 @@ func (x *Security) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use Security.ProtoReflect.Descriptor instead.
 func (*Security) Descriptor() ([]byte, []int) {
-	return file_common_proto_rawDescGZIP(), []int{9}
+	return file_common_proto_rawDescGZIP(), []int{10}
 }
 
 func (x *Security) GetJwtSecret() string {
@@ -767,7 +850,7 @@ var File_common_proto protoreflect.FileDescriptor
 
 const file_common_proto_rawDesc = "" +
 	"\n" +
-	"\fcommon.proto\x12\x04conf\"\xba\x01\n" +
+	"\fcommon.proto\x12\x04conf\"\xda\x01\n" +
 	"\tBootstrap\x12$\n" +
 	"\x06server\x18\x01 \x01(\v2\f.conf.ServerR\x06server\x12\x1b\n" +
 	"\x03log\x18\x02 \x01(\v2\t.conf.LogR\x03log\x12\x1e\n" +
@@ -775,7 +858,14 @@ const file_common_proto_rawDesc = "" +
 	".conf.OtelR\x04otel\x12\x1e\n" +
 	"\x04data\x18\x04 \x01(\v2\n" +
 	".conf.DataR\x04data\x12*\n" +
-	"\bsecurity\x18\x05 \x01(\v2\x0e.conf.SecurityR\bsecurity\"\xd1\x03\n" +
+	"\bsecurity\x18\x05 \x01(\v2\x0e.conf.SecurityR\bsecurity\x12\x1e\n" +
+	"\x04etcd\x18\x06 \x01(\v2\n" +
+	".conf.EtcdR\x04etcd\"\x80\x01\n" +
+	"\x04Etcd\x12\x1c\n" +
+	"\tendpoints\x18\x01 \x03(\tR\tendpoints\x12\x16\n" +
+	"\x06prefix\x18\x02 \x01(\tR\x06prefix\x12\x10\n" +
+	"\x03env\x18\x03 \x01(\tR\x03env\x120\n" +
+	"\x14dial_timeout_seconds\x18\x04 \x01(\rR\x12dialTimeoutSeconds\"\xd1\x03\n" +
 	"\x04Otel\x12\x1a\n" +
 	"\bendpoint\x18\x01 \x01(\tR\bendpoint\x12\x1a\n" +
 	"\binsecure\x18\x02 \x01(\bR\binsecure\x121\n" +
@@ -845,36 +935,38 @@ func file_common_proto_rawDescGZIP() []byte {
 	return file_common_proto_rawDescData
 }
 
-var file_common_proto_msgTypes = make([]protoimpl.MessageInfo, 11)
+var file_common_proto_msgTypes = make([]protoimpl.MessageInfo, 12)
 var file_common_proto_goTypes = []any{
 	(*Bootstrap)(nil), // 0: conf.Bootstrap
-	(*Otel)(nil),      // 1: conf.Otel
-	(*Data)(nil),      // 2: conf.Data
-	(*DB)(nil),        // 3: conf.DB
-	(*Redis)(nil),     // 4: conf.Redis
-	(*Server)(nil),    // 5: conf.Server
-	(*HTTP)(nil),      // 6: conf.HTTP
-	(*Pprof)(nil),     // 7: conf.Pprof
-	(*Log)(nil),       // 8: conf.Log
-	(*Security)(nil),  // 9: conf.Security
-	nil,               // 10: conf.Otel.HeadersEntry
+	(*Etcd)(nil),      // 1: conf.Etcd
+	(*Otel)(nil),      // 2: conf.Otel
+	(*Data)(nil),      // 3: conf.Data
+	(*DB)(nil),        // 4: conf.DB
+	(*Redis)(nil),     // 5: conf.Redis
+	(*Server)(nil),    // 6: conf.Server
+	(*HTTP)(nil),      // 7: conf.HTTP
+	(*Pprof)(nil),     // 8: conf.Pprof
+	(*Log)(nil),       // 9: conf.Log
+	(*Security)(nil),  // 10: conf.Security
+	nil,               // 11: conf.Otel.HeadersEntry
 }
 var file_common_proto_depIdxs = []int32{
-	5,  // 0: conf.Bootstrap.server:type_name -> conf.Server
-	8,  // 1: conf.Bootstrap.log:type_name -> conf.Log
-	1,  // 2: conf.Bootstrap.otel:type_name -> conf.Otel
-	2,  // 3: conf.Bootstrap.data:type_name -> conf.Data
-	9,  // 4: conf.Bootstrap.security:type_name -> conf.Security
-	10, // 5: conf.Otel.headers:type_name -> conf.Otel.HeadersEntry
-	3,  // 6: conf.Data.db:type_name -> conf.DB
-	4,  // 7: conf.Data.redis:type_name -> conf.Redis
-	6,  // 8: conf.Server.http:type_name -> conf.HTTP
-	7,  // 9: conf.HTTP.pprof:type_name -> conf.Pprof
-	10, // [10:10] is the sub-list for method output_type
-	10, // [10:10] is the sub-list for method input_type
-	10, // [10:10] is the sub-list for extension type_name
-	10, // [10:10] is the sub-list for extension extendee
-	0,  // [0:10] is the sub-list for field type_name
+	6,  // 0: conf.Bootstrap.server:type_name -> conf.Server
+	9,  // 1: conf.Bootstrap.log:type_name -> conf.Log
+	2,  // 2: conf.Bootstrap.otel:type_name -> conf.Otel
+	3,  // 3: conf.Bootstrap.data:type_name -> conf.Data
+	10, // 4: conf.Bootstrap.security:type_name -> conf.Security
+	1,  // 5: conf.Bootstrap.etcd:type_name -> conf.Etcd
+	11, // 6: conf.Otel.headers:type_name -> conf.Otel.HeadersEntry
+	4,  // 7: conf.Data.db:type_name -> conf.DB
+	5,  // 8: conf.Data.redis:type_name -> conf.Redis
+	7,  // 9: conf.Server.http:type_name -> conf.HTTP
+	8,  // 10: conf.HTTP.pprof:type_name -> conf.Pprof
+	11, // [11:11] is the sub-list for method output_type
+	11, // [11:11] is the sub-list for method input_type
+	11, // [11:11] is the sub-list for extension type_name
+	11, // [11:11] is the sub-list for extension extendee
+	0,  // [0:11] is the sub-list for field type_name
 }
 
 func init() { file_common_proto_init() }
@@ -888,7 +980,7 @@ func file_common_proto_init() {
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_common_proto_rawDesc), len(file_common_proto_rawDesc)),
 			NumEnums:      0,
-			NumMessages:   11,
+			NumMessages:   12,
 			NumExtensions: 0,
 			NumServices:   0,
 		},

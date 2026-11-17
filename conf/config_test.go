@@ -162,3 +162,55 @@ func TestLoadNoGlobalState(t *testing.T) {
 		t.Errorf("后一次加载未生效: host = %q, want 10.0.0.99", got)
 	}
 }
+
+// TestLoadEtcdDefaults etcd 段缺省时补齐 prefix/env/timeout，endpoints 保持为空。
+func TestLoadEtcdDefaults(t *testing.T) {
+	cfg, src, err := Load(writeConfig(t, sampleConfig))
+	if err != nil {
+		t.Fatalf("Load: %v", err)
+	}
+	defer func() { _ = src.Close() }()
+
+	if got := cfg.GetEtcd().GetPrefix(); got != DefaultEtcdPrefix {
+		t.Errorf("etcd.prefix = %q, want %q", got, DefaultEtcdPrefix)
+	}
+	if got := cfg.GetEtcd().GetEnv(); got != DefaultEtcdEnv {
+		t.Errorf("etcd.env = %q, want %q", got, DefaultEtcdEnv)
+	}
+	if got := cfg.GetEtcd().GetDialTimeoutSeconds(); got != DefaultEtcdDialTimeoutSeconds {
+		t.Errorf("etcd.dial_timeout_seconds = %d, want %d", got, DefaultEtcdDialTimeoutSeconds)
+	}
+	if got := cfg.GetEtcd().EndpointList(); len(got) != 0 {
+		t.Errorf("etcd.endpoints = %v, want empty", got)
+	}
+}
+
+// TestLoadEtcdEndpoints 清洗 endpoints 的空项与空格，并保留显式 env/prefix。
+func TestLoadEtcdEndpoints(t *testing.T) {
+	body := sampleConfig + `
+etcd:
+  endpoints: [" 127.0.0.1:2379 ", "", "10.0.0.1:2379"]
+  prefix: "rym-test"
+  env: "prod"
+  dial_timeout_seconds: 5
+`
+	cfg, src, err := Load(writeConfig(t, body))
+	if err != nil {
+		t.Fatalf("Load: %v", err)
+	}
+	defer func() { _ = src.Close() }()
+
+	got := cfg.GetEtcd().EndpointList()
+	want := []string{"127.0.0.1:2379", "10.0.0.1:2379"}
+	if len(got) != len(want) {
+		t.Fatalf("endpoints = %v, want %v", got, want)
+	}
+	for i := range want {
+		if got[i] != want[i] {
+			t.Errorf("endpoints[%d] = %q, want %q", i, got[i], want[i])
+		}
+	}
+	if cfg.GetEtcd().GetPrefix() != "rym-test" || cfg.GetEtcd().GetEnv() != "prod" {
+		t.Errorf("prefix/env = %q/%q, want rym-test/prod", cfg.GetEtcd().GetPrefix(), cfg.GetEtcd().GetEnv())
+	}
+}

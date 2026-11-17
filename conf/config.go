@@ -15,6 +15,7 @@ import (
 	"fmt"
 	"net"
 	"strconv"
+	"strings"
 
 	"github.com/go-kratos/kratos/v3/config"
 	"github.com/go-kratos/kratos/v3/config/env"
@@ -28,6 +29,13 @@ const (
 	// EnvPrefix 环境变量前缀。APP_DB_HOST 会被映射为 key "DB_HOST"，
 	// 供配置文件里的 ${DB_HOST:...} 占位符使用。
 	EnvPrefix = "APP_"
+
+	// DefaultEtcdPrefix 业务配置在 etcd 中的根前缀。
+	DefaultEtcdPrefix = "rym"
+	// DefaultEtcdEnv 配置环境；dev/staging/prod 共用 etcd 时靠它隔离。
+	DefaultEtcdEnv = "dev"
+	// DefaultEtcdDialTimeoutSeconds 连接 etcd 的超时。
+	DefaultEtcdDialTimeoutSeconds = 3
 )
 
 // DSN 组装 go-sql-driver/mysql 连接串。
@@ -80,7 +88,34 @@ func (x *Bootstrap) Validate() error {
 	if !sec.GetTrustGatewayIdentity() && sec.GetJwtSecret() == "" && sec.GetRequireAuth() {
 		return errors.New("配置校验失败: security.require_auth=true 时必须配置 security.jwt_secret（或信任网关身份）")
 	}
+
+	if x.Etcd == nil {
+		x.Etcd = &Etcd{}
+	}
+	if x.Etcd.Prefix == "" {
+		x.Etcd.Prefix = DefaultEtcdPrefix
+	}
+	if x.Etcd.Env == "" {
+		x.Etcd.Env = DefaultEtcdEnv
+	}
+	if x.Etcd.DialTimeoutSeconds == 0 {
+		x.Etcd.DialTimeoutSeconds = DefaultEtcdDialTimeoutSeconds
+	}
 	return nil
+}
+
+// EndpointList 返回清洗后的 etcd 地址列表（去空格、跳过空项）。
+func (x *Etcd) EndpointList() []string {
+	if x == nil {
+		return nil
+	}
+	out := make([]string, 0, len(x.GetEndpoints()))
+	for _, raw := range x.GetEndpoints() {
+		if ep := strings.TrimSpace(raw); ep != "" {
+			out = append(out, ep)
+		}
+	}
+	return out
 }
 
 // Source 是一次配置加载的来源句柄（底层 Kratos config 实例）。
