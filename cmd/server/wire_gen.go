@@ -11,6 +11,8 @@ import (
 	conf2 "github.com/CycleZero/rym/app/demo/conf"
 	"github.com/CycleZero/rym/app/im"
 	conf3 "github.com/CycleZero/rym/app/im/conf"
+	"github.com/CycleZero/rym/app/user"
+	conf4 "github.com/CycleZero/rym/app/user/conf"
 	"github.com/CycleZero/rym/conf"
 	"github.com/CycleZero/rym/pkg/cache"
 	"github.com/CycleZero/rym/pkg/db"
@@ -26,7 +28,7 @@ import (
 //
 // 只允许出现：共享基础设施（pkg/*）+ 各服务的公开装配面（app/<svc>）。
 // 任何 app/<svc>/internal/* 都进不来（Go internal 规则 + 设计约束）。
-func initApp(bc *conf.Bootstrap, demoCfg *conf2.Config, imCfg *conf3.Config, logger *slog.Logger) (*kratos.App, func(), error) {
+func initApp(bc *conf.Bootstrap, demoCfg *conf2.Config, imCfg *conf3.Config, userCfg *conf4.Config, logger *slog.Logger) (*kratos.App, func(), error) {
 	middlewares := transport.NewMiddlewares(bc, logger)
 	dbParams := newDBParams(bc)
 	gormDB, cleanup, err := db.NewDB(dbParams)
@@ -55,7 +57,13 @@ func initApp(bc *conf.Bootstrap, demoCfg *conf2.Config, imCfg *conf3.Config, log
 		cleanup()
 		return nil, nil, err
 	}
-	set := newModuleSet(module, imModule)
+	userModule, err := user.Provide(userCfg, bc, server, gormDB, logger)
+	if err != nil {
+		cleanup2()
+		cleanup()
+		return nil, nil, err
+	}
+	set := newModuleSet(module, imModule, userModule)
 	app := NewApp(bc, logger, server, pProfServer, set)
 	return app, func() {
 		cleanup2()

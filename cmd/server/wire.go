@@ -10,6 +10,8 @@ import (
 	democonf "github.com/CycleZero/rym/app/demo/conf"
 	"github.com/CycleZero/rym/app/im"
 	imconf "github.com/CycleZero/rym/app/im/conf"
+	"github.com/CycleZero/rym/app/user"
+	userconf "github.com/CycleZero/rym/app/user/conf"
 	"github.com/CycleZero/rym/conf"
 	"github.com/CycleZero/rym/pkg/cache"
 	"github.com/CycleZero/rym/pkg/db"
@@ -28,6 +30,7 @@ func initApp(
 	bc *conf.Bootstrap,
 	demoCfg *democonf.Config,
 	imCfg *imconf.Config,
+	userCfg *userconf.Config,
 	logger *slog.Logger,
 ) (*kratos.App, func(), error) {
 	panic(wire.Build(
@@ -41,6 +44,7 @@ func initApp(
 		transport.ProviderSet,
 		demo.ProviderSet, // ← 新增服务：加一行
 		im.ProviderSet,   // ← IM 服务
+		user.ProviderSet, // ← 用户服务
 		newModuleSet,     // ← 新增服务：modules.go 加一个参数
 	))
 }

@@ -3,6 +3,7 @@ package main
 import (
 	"github.com/CycleZero/rym/app/demo"
 	"github.com/CycleZero/rym/app/im"
+	"github.com/CycleZero/rym/app/user"
 	"github.com/CycleZero/rym/pkg/module"
 )
 
@@ -14,9 +15,10 @@ import (
 //
 // 其余依赖（DB/Redis/事务/中间件/编码器）全部由 Wire 按依赖图解析，
 // 不再需要 ServiceHub 或包级注册表。
-func newModuleSet(demoModule *demo.Module, imModule *im.Module) *module.Set {
+func newModuleSet(demoModule *demo.Module, imModule *im.Module, userModule *user.Module) *module.Set {
 	return module.New(
 		demoModule,
 		imModule,
+		userModule,
 	)
 }

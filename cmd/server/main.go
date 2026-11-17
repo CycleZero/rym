@@ -10,6 +10,7 @@ import (
 
 	democonf "github.com/CycleZero/rym/app/demo/conf"
 	imconf "github.com/CycleZero/rym/app/im/conf"
+	userconf "github.com/CycleZero/rym/app/user/conf"
 	"github.com/CycleZero/rym/conf"
 	"github.com/CycleZero/rym/pkg/log"
 	"github.com/CycleZero/rym/pkg/metrics"
@@ -23,6 +24,7 @@ func main() {
 	confPath := flag.String("conf", conf.DefaultPath, "共享配置文件路径（文件或目录）")
 	demoConfPath := flag.String("demo-conf", democonf.DefaultPath, "demo 服务配置文件路径（可选）")
 	imConfPath := flag.String("im-conf", imconf.DefaultConfigPath, "im 服务配置文件路径（可选）")
+	userConfPath := flag.String("user-conf", userconf.DefaultConfigPath, "user 服务配置文件路径（可选）")
 	flag.Parse()
 
 	// 1) 共享配置：不设全局，加载结果显式注入（见 initApp）
@@ -40,6 +42,12 @@ func main() {
 		os.Exit(1)
 	}
 	imCfg, err := imconf.Load(*imConfPath)
+	if err != nil {
+		_ = cfgSource.Close()
+		fmt.Fprintln(os.Stderr, "启动失败:", err)
+		os.Exit(1)
+	}
+	userCfg, err := userconf.Load(*userConfPath)
 	if err != nil {
 		_ = cfgSource.Close()
 		fmt.Fprintln(os.Stderr, "启动失败:", err)
@@ -70,7 +78,7 @@ func main() {
 	}
 
 	// 4) 装配（Wire 生成）：此处的 DB 连接失败会返回 error 而不是 panic
-	app, cleanup, err := initApp(bc, demoCfg, imCfg, logger.Logger)
+	app, cleanup, err := initApp(bc, demoCfg, imCfg, userCfg, logger.Logger)
 	if err != nil {
 		logger.Error("装配应用失败", "error", err)
 		_ = logger.Close(context.Background())

@@ -28,7 +28,7 @@ config:
 
 # Wire 依赖注入代码生成（生成的 wire_gen.go 必须入库）
 wire:
-	go run -mod=mod github.com/google/wire/cmd/wire ./app/demo ./app/im ./cmd/server
+	go run -mod=mod github.com/google/wire/cmd/wire ./app/demo ./app/im ./app/user ./cmd/server
 
 # 编译
 build:
