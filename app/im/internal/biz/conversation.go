@@ -27,7 +27,8 @@ func (u *Usecase) ListConversations(ctx context.Context, in ListConversationsInp
 	if in.UserID == 0 {
 		return nil, errs.Unauthorized("请先登录")
 	}
-	limit := u.NormalizeLimit(in.Limit)
+	settings := u.settings.Settings()
+	limit := normalizeLimit(settings, in.Limit)
 
 	list, err := u.repo.ListConversations(ctx, in.UserID, limit)
 	if err != nil {

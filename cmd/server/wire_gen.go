@@ -15,6 +15,7 @@ import (
 	conf4 "github.com/CycleZero/rym/app/user/conf"
 	"github.com/CycleZero/rym/conf"
 	"github.com/CycleZero/rym/pkg/cache"
+	"github.com/CycleZero/rym/pkg/configx"
 	"github.com/CycleZero/rym/pkg/db"
 	"github.com/CycleZero/rym/pkg/transport"
 	"github.com/CycleZero/rym/pkg/tx"
@@ -51,14 +52,27 @@ func initApp(bc *conf.Bootstrap, demoCfg *conf2.Config, imCfg *conf3.Config, use
 		cleanup()
 		return nil, nil, err
 	}
-	imModule, err := im.Provide(imCfg, server, gormDB, txManager, logger)
+	context, cleanup3 := newAppContext()
+	etcdParams := newEtcdParams(bc)
+	clientv3Client, cleanup4, err := configx.NewEtcdClient(etcdParams)
 	if err != nil {
+		cleanup3()
+		cleanup2()
+		cleanup()
+		return nil, nil, err
+	}
+	imModule, err := im.Provide(context, imCfg, bc, clientv3Client, server, gormDB, txManager, logger)
+	if err != nil {
+		cleanup4()
+		cleanup3()
 		cleanup2()
 		cleanup()
 		return nil, nil, err
 	}
 	userModule, err := user.Provide(userCfg, bc, server, gormDB, logger)
 	if err != nil {
+		cleanup4()
+		cleanup3()
 		cleanup2()
 		cleanup()
 		return nil, nil, err
@@ -66,6 +80,8 @@ func initApp(bc *conf.Bootstrap, demoCfg *conf2.Config, imCfg *conf3.Config, use
 	set := newModuleSet(module, imModule, userModule)
 	app := NewApp(bc, logger, server, pProfServer, set)
 	return app, func() {
+		cleanup4()
+		cleanup3()
 		cleanup2()
 		cleanup()
 	}, nil

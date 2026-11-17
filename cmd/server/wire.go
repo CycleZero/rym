@@ -14,6 +14,7 @@ import (
 	userconf "github.com/CycleZero/rym/app/user/conf"
 	"github.com/CycleZero/rym/conf"
 	"github.com/CycleZero/rym/pkg/cache"
+	"github.com/CycleZero/rym/pkg/configx"
 	"github.com/CycleZero/rym/pkg/db"
 	"github.com/CycleZero/rym/pkg/transport"
 	"github.com/CycleZero/rym/pkg/tx"
@@ -35,11 +36,14 @@ func initApp(
 ) (*kratos.App, func(), error) {
 	panic(wire.Build(
 		NewApp,
+		newAppContext, // 进程级 context，停机 cancel（配置 watch 退出）
 		newDBParams,
 		newRedisParams,
+		newEtcdParams,
 		newReadinessChecker,
-		db.ProviderSet,    // *gorm.DB + 关闭函数
-		cache.ProviderSet, // *redis.Client + 关闭函数
+		db.ProviderSet,      // *gorm.DB + 关闭函数
+		cache.ProviderSet,   // *redis.Client + 关闭函数
+		configx.ProviderSet, // *etcd.Client + 关闭函数
 		tx.NewTxManager,
 		transport.ProviderSet,
 		demo.ProviderSet, // ← 新增服务：加一行

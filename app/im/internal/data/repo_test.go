@@ -32,6 +32,11 @@ import (
 
 const testBody = `{"text":"hello"}`
 
+// staticSettings 是测试用的固定配置快照。
+type staticSettings struct{ s biz.Settings }
+
+func (s staticSettings) Settings() biz.Settings { return s.s }
+
 // newUsecase 建一个跑在独立 SQLite 文件上的完整业务栈（biz + data + 真实事务）。
 func newUsecase(t *testing.T) (*biz.Usecase, *gorm.DB) {
 	t.Helper()
@@ -53,11 +58,11 @@ func newUsecase(t *testing.T) (*biz.Usecase, *gorm.DB) {
 
 	applyMigration(t, db)
 
-	uc := biz.NewUsecase(data.NewRepo(db), tx.NewTxManager(db), biz.Settings{
+	uc := biz.NewUsecase(data.NewRepo(db), tx.NewTxManager(db), staticSettings{biz.Settings{
 		DefaultPageSize: 20,
 		MaxPageSize:     100,
 		MaxBodyBytes:    64 * 1024,
-	})
+	}})
 	return uc, db
 }
 

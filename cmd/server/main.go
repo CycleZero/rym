@@ -41,11 +41,15 @@ func main() {
 		fmt.Fprintln(os.Stderr, "启动失败:", err)
 		os.Exit(1)
 	}
-	imCfg, err := imconf.Load(*imConfPath)
-	if err != nil {
-		_ = cfgSource.Close()
-		fmt.Fprintln(os.Stderr, "启动失败:", err)
-		os.Exit(1)
+	// IM 已接入 etcd：启用后以 etcd 为准，不再读本地 -im-conf（本地文件仅作无 etcd 时的 fallback）。
+	imCfg := imconf.Default()
+	if len(bc.GetEtcd().EndpointList()) == 0 {
+		imCfg, err = imconf.Load(*imConfPath)
+		if err != nil {
+			_ = cfgSource.Close()
+			fmt.Fprintln(os.Stderr, "启动失败:", err)
+			os.Exit(1)
+		}
 	}
 	userCfg, err := userconf.Load(*userConfPath)
 	if err != nil {

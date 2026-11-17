@@ -57,9 +57,9 @@ func TestMySQLAcceptance(t *testing.T) {
 		}
 	}
 
-	uc := biz.NewUsecase(data.NewRepo(db), tx.NewTxManager(db), biz.Settings{
+	uc := biz.NewUsecase(data.NewRepo(db), tx.NewTxManager(db), staticSettings{biz.Settings{
 		DefaultPageSize: 20, MaxPageSize: 100, MaxBodyBytes: 64 * 1024,
-	})
+	}})
 	ctx := context.Background()
 
 	t.Run("幂等重发", func(t *testing.T) {

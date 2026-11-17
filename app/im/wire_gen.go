@@ -7,13 +7,16 @@
 package im
 
 import (
+	"context"
 	"github.com/CycleZero/rym/app/im/conf"
 	"github.com/CycleZero/rym/app/im/internal/biz"
 	"github.com/CycleZero/rym/app/im/internal/data"
 	"github.com/CycleZero/rym/app/im/internal/server"
 	"github.com/CycleZero/rym/app/im/internal/service"
+	conf2 "github.com/CycleZero/rym/conf"
 	"github.com/CycleZero/rym/pkg/tx"
 	"github.com/go-kratos/kratos/v3/transport/http"
+	"go.etcd.io/etcd/client/v3"
 	"gorm.io/gorm"
 	"log/slog"
 )
@@ -25,10 +28,16 @@ import (
 // 签名只允许出现「公开类型 + 共享基础设施」：
 //   - internal/* 类型一律不能出现在参数或返回值里
 //   - 否则组合根无法引用（Go internal 规则）
-func Provide(cfg *conf.Config, srv *http.Server, db *gorm.DB, tm tx.TxManager, logger *slog.Logger) (*Module, error) {
+//
+// ctx 由组合根创建并在停机时 cancel，用于停止配置 watch goroutine。
+func Provide(ctx context.Context, cfg *conf.Config, bc *conf2.Bootstrap, etcd *clientv3.Client, srv *http.Server, db *gorm.DB, tm tx.TxManager, logger *slog.Logger) (*Module, error) {
 	repo := data.NewRepo(db)
-	settings := NewSettings(cfg)
-	usecase := biz.NewUsecase(repo, tm, settings)
+	configStore, err := NewStore(ctx, cfg, bc, etcd, logger)
+	if err != nil {
+		return nil, err
+	}
+	bizSettingsProvider := NewSettingsProvider(configStore)
+	usecase := biz.NewUsecase(repo, tm, bizSettingsProvider)
 	imService := service.NewImService(usecase, logger)
 	module := server.New(srv, imService)
 	imModule := newModule(module)

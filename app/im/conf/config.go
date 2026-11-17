@@ -14,7 +14,7 @@ const (
 	DefaultPageSize   = 20
 	MaxPageSize       = 100
 	DefaultBodyBytes  = 64 * 1024 // 64KB：足够文本/卡片，图片/文件只存引用
-	DefaultConfigPath = "configs/im.yaml"
+	DefaultConfigPath = "configs/im/config.yaml"
 )
 
 // Load 读取 IM 服务自有配置。

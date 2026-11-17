@@ -7,6 +7,7 @@ import (
 
 	"github.com/CycleZero/rym/conf"
 	"github.com/CycleZero/rym/pkg/cache"
+	"github.com/CycleZero/rym/pkg/configx"
 	"github.com/CycleZero/rym/pkg/db"
 	"github.com/CycleZero/rym/pkg/transport"
 
@@ -38,6 +39,26 @@ func newRedisParams(bc *conf.Bootstrap) cache.RedisParams {
 		Port:     int(redisCfg.GetPort()),
 		Password: redisCfg.GetPassword(),
 	}
+}
+
+// newEtcdParams 把共享配置转换为 etcd 连接参数。
+//
+// endpoints 为空表示不启用 etcd：各服务退回本地 configs/<svc>/config.yaml。
+func newEtcdParams(bc *conf.Bootstrap) configx.EtcdParams {
+	etcdCfg := bc.GetEtcd()
+	return configx.EtcdParams{
+		Endpoints:   etcdCfg.EndpointList(),
+		DialTimeout: time.Duration(etcdCfg.GetDialTimeoutSeconds()) * time.Second,
+	}
+}
+
+// newAppContext 是进程级生命周期 context。
+//
+// 停机时 cancel：配置 watch goroutine 收到信号后退出。
+// 它不是请求 context，只用于长驻后台任务。
+func newAppContext() (context.Context, func()) {
+	ctx, cancel := context.WithCancel(context.Background())
+	return ctx, cancel
 }
 
 // newReadinessChecker 组合各依赖的探测，作为 /readyz 的就绪检查。

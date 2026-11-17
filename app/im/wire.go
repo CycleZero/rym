@@ -4,6 +4,7 @@
 package im
 
 import (
+	"context"
 	"log/slog"
 
 	"github.com/CycleZero/rym/app/im/conf"
@@ -11,10 +12,12 @@ import (
 	"github.com/CycleZero/rym/app/im/internal/data"
 	"github.com/CycleZero/rym/app/im/internal/server"
 	"github.com/CycleZero/rym/app/im/internal/service"
+	rootconf "github.com/CycleZero/rym/conf"
 	"github.com/CycleZero/rym/pkg/tx"
 
 	khttp "github.com/go-kratos/kratos/v3/transport/http"
 	"github.com/google/wire"
+	clientv3 "go.etcd.io/etcd/client/v3"
 	"gorm.io/gorm"
 )
 
@@ -23,8 +26,13 @@ import (
 // 签名只允许出现「公开类型 + 共享基础设施」：
 //   - internal/* 类型一律不能出现在参数或返回值里
 //   - 否则组合根无法引用（Go internal 规则）
+//
+// ctx 由组合根创建并在停机时 cancel，用于停止配置 watch goroutine。
 func Provide(
+	ctx context.Context,
 	cfg *conf.Config,
+	bc *rootconf.Bootstrap,
+	etcd *clientv3.Client,
 	srv *khttp.Server,
 	db *gorm.DB,
 	tm tx.TxManager,
@@ -35,7 +43,8 @@ func Provide(
 		biz.ProviderSet,
 		service.ProviderSet,
 		server.ProviderSet,
-		NewSettings,
+		NewStore,
+		NewSettingsProvider,
 		newModule,
 	))
 }

@@ -37,6 +37,11 @@ import (
 )
 
 // envelope 对应 pkg/response 的统一信封。
+// httpSettings 是测试用的固定配置快照。
+type httpSettings struct{ s biz.Settings }
+
+func (s httpSettings) Settings() biz.Settings { return s.s }
+
 type envelope struct {
 	Code    int             `json:"code"`
 	Message string          `json:"message"`
@@ -63,9 +68,9 @@ func newHTTPServer(t *testing.T) *httptest.Server {
 	t.Helper()
 
 	db := openSQLite(t)
-	uc := biz.NewUsecase(data.NewRepo(db), tx.NewTxManager(db), biz.Settings{
+	uc := biz.NewUsecase(data.NewRepo(db), tx.NewTxManager(db), httpSettings{biz.Settings{
 		DefaultPageSize: 20, MaxPageSize: 100, MaxBodyBytes: 64 * 1024,
-	})
+	}})
 	logger := slog.New(slog.NewTextHandler(io.Discard, nil))
 
 	srv := khttp.NewServer(

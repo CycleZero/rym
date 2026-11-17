@@ -15,20 +15,29 @@ import (
 type Usecase struct {
 	repo     Repo
 	tm       tx.TxManager
-	settings Settings
+	settings SettingsProvider
 }
 
-// NewUsecase 由 Wire 注入仓储接口、事务管理器与业务参数。
-func NewUsecase(repo Repo, tm tx.TxManager, settings Settings) *Usecase {
+// SettingsProvider 返回当前配置快照。
+//
+// 不直接把 Settings 按值注入 Usecase：那样配置在构造时就固定了，无法热更新。
+// 每个用例入口调用一次 Settings()，把同一版快照传给下游，保证一次请求内
+// 不会混用两版配置。
+type SettingsProvider interface {
+	Settings() Settings
+}
+
+// NewUsecase 由 Wire 注入仓储接口、事务管理器与配置提供者。
+func NewUsecase(repo Repo, tm tx.TxManager, settings SettingsProvider) *Usecase {
 	return &Usecase{repo: repo, tm: tm, settings: settings}
 }
 
-// NormalizeLimit 归一化分页条数：缺省用默认值，超上限截断。
-func (u *Usecase) NormalizeLimit(limit int) int {
+// normalizeLimit 归一化分页条数：缺省用默认值，超上限截断。
+func normalizeLimit(s Settings, limit int) int {
 	if limit <= 0 {
-		return u.settings.DefaultPageSize
+		return s.DefaultPageSize
 	}
-	if max := u.settings.MaxPageSize; max > 0 && limit > max {
+	if max := s.MaxPageSize; max > 0 && limit > max {
 		return max
 	}
 	return limit

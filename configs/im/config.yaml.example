@@ -1,6 +1,6 @@
-# IM 服务自有配置（configs/*.yaml 被 gitignore，只提交本示例）
+# IM 服务自有配置（configs/<svc>/config.yaml 被 gitignore，只提交本示例）
 #
-# 通过 ./bin/rym -im-conf configs/im.yaml 指定；文件缺失时使用代码内默认值。
+# 通过 ./bin/rym -im-conf configs/im/config.yaml 指定；文件缺失时使用代码内默认值。
 # 注意：这里只放**业务参数**，DB/Redis/日志/OTel 等进程级配置在 config.yaml。
 
 # 拉历史 / 会话列表的默认条数

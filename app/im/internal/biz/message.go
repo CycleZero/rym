@@ -48,7 +48,9 @@ type SendMessageResult struct {
 // 简化说明（v1）：没有 MQ / outbox，消息落库即返回；在线推送留给将来的
 // gateway。代价是"落库成功但对方不在线时不推送"，客户端靠拉取补洞兜底。
 func (u *Usecase) SendMessage(ctx context.Context, in SendMessageInput) (*SendMessageResult, error) {
-	if err := u.validateSend(in); err != nil {
+	// 一次请求读一次快照：即使中途配置被热更新，本次请求也只用同一版。
+	settings := u.settings.Settings()
+	if err := u.validateSend(in, settings); err != nil {
 		return nil, err
 	}
 
@@ -170,7 +172,7 @@ func (u *Usecase) conversationForSend(ctx context.Context, in SendMessageInput) 
 }
 
 // validateSend 校验发送入参。
-func (u *Usecase) validateSend(in SendMessageInput) error {
+func (u *Usecase) validateSend(in SendMessageInput, settings Settings) error {
 	if in.SenderID == 0 {
 		return errs.Unauthorized("请先登录")
 	}
@@ -195,7 +197,7 @@ func (u *Usecase) validateSend(in SendMessageInput) error {
 	if strings.TrimSpace(in.Body) == "" {
 		return errs.InvalidArgument("消息体不能为空")
 	}
-	if max := u.settings.MaxBodyBytes; max > 0 && len(in.Body) > max {
+	if max := settings.MaxBodyBytes; max > 0 && len(in.Body) > max {
 		return errs.InvalidArgument("消息体超过大小上限")
 	}
 	if !json.Valid([]byte(in.Body)) {
@@ -255,7 +257,8 @@ func (u *Usecase) PullMessages(ctx context.Context, in PullMessagesInput) (*Pull
 	if in.BeforeSeq > 0 && in.AfterSeq > 0 {
 		return nil, errs.InvalidArgument("before_seq 与 after_seq 不能同时使用")
 	}
-	limit := u.NormalizeLimit(in.Limit)
+	settings := u.settings.Settings()
+	limit := normalizeLimit(settings, in.Limit)
 
 	// 先查成员身份：非成员直接 403，不暴露会话是否存在。
 	p, err := u.repo.GetParticipant(ctx, in.ConversationID, in.UserID)
