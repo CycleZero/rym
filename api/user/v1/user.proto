@@ -1,0 +1,83 @@
+syntax = "proto3";
+
+// 包名约定：api.<svc>.<version>（与其他服务一致）。
+package api.user.v1;
+
+import "google/api/annotations.proto";
+
+option go_package = "github.com/CycleZero/rym/api/user/v1;v1";
+
+// UserService 是用户模块的对外契约（v1：注册 / 登录 / 当前用户）。
+//
+// 路由统一 /v1/users/ 前缀，不带 /api（网关将来负责 rewrite）。
+//
+// v1 明确不做：手机号/邮箱验证、找回密码、第三方登录、多设备会话管理、
+// 角色权限（留给组织/权限模块）。表结构预留 status，禁用账号不需要改契约。
+service UserService {
+  // Register 注册。
+  //
+  // username 会统一转小写后存储（避免 MySQL 大小写不敏感、SQLite 大小写敏感
+  // 带来的跨库不一致）；password 用 bcrypt 哈希，永不出现在响应里。
+  // 重复用户名返回 409。
+  rpc Register(RegisterRequest) returns (User) {
+    option (google.api.http) = {
+      post: "/v1/users/register"
+      body: "*"
+    };
+  }
+
+  // Login 登录，成功返回访问令牌。
+  //
+  // 令牌是 HS256 JWT，claim 里带 user_id；后续请求用
+  // `Authorization: Bearer <token>` 即可（pkg/transport 统一校验）。
+  // 用户名不存在与密码错误返回同一个 401，且耗时对齐，避免账号枚举。
+  rpc Login(LoginRequest) returns (LoginResponse) {
+    option (google.api.http) = {
+      post: "/v1/users/login"
+      body: "*"
+    };
+  }
+
+  // GetMe 当前登录用户资料（校验令牌与账号状态的最小接口）。
+  rpc GetMe(GetMeRequest) returns (User) {
+    option (google.api.http) = {get: "/v1/users/me"};
+  }
+}
+
+// User 对外的用户资料。永远不包含密码哈希。
+message User {
+  uint64 id = 1;
+  // 登录名（小写）。
+  string username = 2;
+  string nickname = 3;
+  // 1=正常 0=禁用。
+  int32 status = 4;
+  string created_at = 5;
+  string updated_at = 6;
+}
+
+message RegisterRequest {
+  // 3-32 位，仅 a-z 0-9 _；服务端统一转小写。
+  string username = 1;
+  // 8-72 字节（bcrypt 的上限是 72 字节）。
+  string password = 2;
+  // 可空，默认使用 username。
+  string nickname = 3;
+}
+
+message LoginRequest {
+  string username = 1;
+  string password = 2;
+}
+
+message LoginResponse {
+  // HS256 JWT，放到 Authorization: Bearer 里。
+  string access_token = 1;
+  // 固定 "Bearer"（给客户端拼接 Authorization 头用）。
+  string token_type = 2;
+  // 过期时间（Unix 秒）。
+  int64 expires_at = 3;
+  User user = 4;
+}
+
+message GetMeRequest {}

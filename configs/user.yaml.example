@@ -1,0 +1,12 @@
+# 用户服务自有配置（configs/*.yaml 被 gitignore，只提交本示例）
+#
+# 通过 ./bin/rym -user-conf configs/user.yaml 指定；文件缺失时使用代码内默认值。
+# 注意：JWT 密钥不在这里，它是进程级配置 security.jwt_secret（config.yaml）。
+
+# 登录令牌有效期（秒）。默认 7 天。
+# 续期/刷新令牌属于 v2；v1 用固定有效期。
+token_ttl_seconds: 604800
+
+# bcrypt 计算强度（4-31）。默认 10；每 +1 计算时间翻倍。
+# 生产用 10；本地压测/测试可临时调低。
+bcrypt_cost: 10

@@ -1,0 +1,16 @@
+syntax = "proto3";
+
+package user.conf;
+
+option go_package = "github.com/CycleZero/rym/app/user/conf;conf";
+
+// Config 是 user 服务的**自有配置**（拆分微服务时整目录搬走）。
+//
+// 进程级配置（DB/Redis/日志/OTel/JWT 密钥）不在这里：见仓库根 conf/common.proto。
+message Config {
+  // 登录令牌有效期；0 表示使用代码内默认值（7 天）。
+  uint32 token_ttl_seconds = 1;
+  // bcrypt cost；0 表示使用默认值 10，允许范围 4-31。
+  // 调低只建议用于测试（cost 每 +1 计算时间翻倍）。
+  uint32 bcrypt_cost = 2;
+}
