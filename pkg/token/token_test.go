@@ -1,6 +1,7 @@
 package token_test
 
 import (
+	"errors"
 	"testing"
 	"time"
 
@@ -55,5 +56,33 @@ func TestNewIssuerFailsClosed(t *testing.T) {
 	}
 	if _, err := token.NewIssuer("secret", 0); err == nil {
 		t.Fatal("TTL=0 应返回错误")
+	}
+}
+
+// TestVerifyMatchesIssuer 签发与独立校验入口共用同一套 claim 约定。
+func TestVerifyMatchesIssuer(t *testing.T) {
+	const secret = "verify-secret"
+	issuer, err := token.NewIssuer(secret, time.Hour)
+	if err != nil {
+		t.Fatalf("创建签发器失败：%v", err)
+	}
+	raw, _, err := issuer.Issue(42, "alice")
+	if err != nil {
+		t.Fatalf("签发失败：%v", err)
+	}
+
+	claims, err := token.Verify(raw, secret)
+	if err != nil {
+		t.Fatalf("校验失败：%v", err)
+	}
+	if claims.UserID != 42 || claims.Username != "alice" || claims.ExpiresAt.IsZero() {
+		t.Fatalf("claims 不对：%+v", claims)
+	}
+
+	if _, err := token.Verify(raw, "wrong-secret"); !errors.Is(err, token.ErrInvalidToken) {
+		t.Fatalf("错误密钥应返回 ErrInvalidToken，实际 %v", err)
+	}
+	if _, err := token.Verify("", secret); !errors.Is(err, token.ErrInvalidToken) {
+		t.Fatalf("空令牌应返回 ErrInvalidToken，实际 %v", err)
 	}
 }

@@ -10,6 +10,7 @@ package token
 
 import (
 	"errors"
+	"strconv"
 	"strings"
 	"time"
 
@@ -56,4 +57,60 @@ func (i *Issuer) Issue(userID uint64, username string) (string, time.Time, error
 		return "", time.Time{}, err
 	}
 	return signed, expiresAt, nil
+}
+
+// Claims 是校验通过的令牌内容。
+type Claims struct {
+	UserID    uint64
+	Username  string
+	ExpiresAt time.Time
+}
+
+// ErrInvalidToken 令牌无效/过期/算法不符。
+var ErrInvalidToken = errors.New("token: 无效的令牌")
+
+// Verify 校验 HS256 令牌并返回 claim。
+//
+// 与 pkg/transport 的 authMiddleware 使用同一套约定：HS256、claim user_id。
+// 仅供独立鉴权入口（如 WS server）使用；HTTP 中间件仍走自己的解析路径。
+func Verify(raw, secret string) (*Claims, error) {
+	if strings.TrimSpace(raw) == "" || strings.TrimSpace(secret) == "" {
+		return nil, ErrInvalidToken
+	}
+
+	parsed, err := jwt.Parse(raw, func(*jwt.Token) (any, error) {
+		return []byte(secret), nil
+	}, jwt.WithValidMethods([]string{"HS256"}))
+	if err != nil || !parsed.Valid {
+		return nil, ErrInvalidToken
+	}
+
+	claims, ok := parsed.Claims.(jwt.MapClaims)
+	if !ok {
+		return nil, ErrInvalidToken
+	}
+
+	var uid uint64
+	switch v := claims["user_id"].(type) {
+	case float64:
+		if v <= 0 {
+			return nil, ErrInvalidToken
+		}
+		uid = uint64(v)
+	case string:
+		n, err := strconv.ParseUint(v, 10, 64)
+		if err != nil || n == 0 {
+			return nil, ErrInvalidToken
+		}
+		uid = n
+	default:
+		return nil, ErrInvalidToken
+	}
+
+	username, _ := claims["username"].(string)
+	exp, err := claims.GetExpirationTime()
+	if err != nil || exp == nil {
+		return nil, ErrInvalidToken
+	}
+	return &Claims{UserID: uid, Username: username, ExpiresAt: exp.Time}, nil
 }

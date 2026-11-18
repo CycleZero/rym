@@ -77,6 +77,21 @@ message Redis {
 
 message Server {
   HTTP http = 1;
+  WS ws = 2;
+}
+
+// WS 是桌面/移动客户端的实时推送监听器（独立端口）。
+//
+// 独立端口的原因：长连接不适合 kratos HTTP 的信封/30s 超时；
+// 也避免与响应编码器、ResponseWriter 包装层纠缠。
+message WS {
+  bool enable = 1;
+  string host = 2;
+  uint32 port = 3;
+  uint32 heartbeat_seconds = 4;          // 缺省 25s
+  uint32 pong_timeout_seconds = 5;       // 缺省 10s
+  uint32 max_connections_per_user = 6;   // 缺省 5（多端）
+  uint32 max_lifetime_seconds = 7;       // 缺省 24h，到期强制重连
 }
 
 message HTTP {

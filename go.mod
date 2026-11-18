@@ -3,6 +3,7 @@ module github.com/CycleZero/rym
 go 1.27.1
 
 require (
+	github.com/coder/websocket v1.8.15
 	github.com/fatih/color v1.19.0
 	github.com/go-kratos/kratos/v3 v3.0.0
 	github.com/golang-jwt/jwt/v5 v5.3.1

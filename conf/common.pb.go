@@ -538,6 +538,7 @@ func (x *Redis) GetPassword() string {
 type Server struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	Http          *HTTP                  `protobuf:"bytes,1,opt,name=http,proto3" json:"http,omitempty"`
+	Ws            *WS                    `protobuf:"bytes,2,opt,name=ws,proto3" json:"ws,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -579,6 +580,109 @@ func (x *Server) GetHttp() *HTTP {
 	return nil
 }
 
+func (x *Server) GetWs() *WS {
+	if x != nil {
+		return x.Ws
+	}
+	return nil
+}
+
+// WS 是桌面/移动客户端的实时推送监听器（独立端口）。
+//
+// 独立端口的原因：长连接不适合 kratos HTTP 的信封/30s 超时；
+// 也避免与响应编码器、ResponseWriter 包装层纠缠。
+type WS struct {
+	state                 protoimpl.MessageState `protogen:"open.v1"`
+	Enable                bool                   `protobuf:"varint,1,opt,name=enable,proto3" json:"enable,omitempty"`
+	Host                  string                 `protobuf:"bytes,2,opt,name=host,proto3" json:"host,omitempty"`
+	Port                  uint32                 `protobuf:"varint,3,opt,name=port,proto3" json:"port,omitempty"`
+	HeartbeatSeconds      uint32                 `protobuf:"varint,4,opt,name=heartbeat_seconds,json=heartbeatSeconds,proto3" json:"heartbeat_seconds,omitempty"`                    // 缺省 25s
+	PongTimeoutSeconds    uint32                 `protobuf:"varint,5,opt,name=pong_timeout_seconds,json=pongTimeoutSeconds,proto3" json:"pong_timeout_seconds,omitempty"`            // 缺省 10s
+	MaxConnectionsPerUser uint32                 `protobuf:"varint,6,opt,name=max_connections_per_user,json=maxConnectionsPerUser,proto3" json:"max_connections_per_user,omitempty"` // 缺省 5（多端）
+	MaxLifetimeSeconds    uint32                 `protobuf:"varint,7,opt,name=max_lifetime_seconds,json=maxLifetimeSeconds,proto3" json:"max_lifetime_seconds,omitempty"`            // 缺省 24h，到期强制重连
+	unknownFields         protoimpl.UnknownFields
+	sizeCache             protoimpl.SizeCache
+}
+
+func (x *WS) Reset() {
+	*x = WS{}
+	mi := &file_common_proto_msgTypes[7]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *WS) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*WS) ProtoMessage() {}
+
+func (x *WS) ProtoReflect() protoreflect.Message {
+	mi := &file_common_proto_msgTypes[7]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use WS.ProtoReflect.Descriptor instead.
+func (*WS) Descriptor() ([]byte, []int) {
+	return file_common_proto_rawDescGZIP(), []int{7}
+}
+
+func (x *WS) GetEnable() bool {
+	if x != nil {
+		return x.Enable
+	}
+	return false
+}
+
+func (x *WS) GetHost() string {
+	if x != nil {
+		return x.Host
+	}
+	return ""
+}
+
+func (x *WS) GetPort() uint32 {
+	if x != nil {
+		return x.Port
+	}
+	return 0
+}
+
+func (x *WS) GetHeartbeatSeconds() uint32 {
+	if x != nil {
+		return x.HeartbeatSeconds
+	}
+	return 0
+}
+
+func (x *WS) GetPongTimeoutSeconds() uint32 {
+	if x != nil {
+		return x.PongTimeoutSeconds
+	}
+	return 0
+}
+
+func (x *WS) GetMaxConnectionsPerUser() uint32 {
+	if x != nil {
+		return x.MaxConnectionsPerUser
+	}
+	return 0
+}
+
+func (x *WS) GetMaxLifetimeSeconds() uint32 {
+	if x != nil {
+		return x.MaxLifetimeSeconds
+	}
+	return 0
+}
+
 type HTTP struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
 	Host  string                 `protobuf:"bytes,1,opt,name=host,proto3" json:"host,omitempty"`
@@ -599,7 +703,7 @@ type HTTP struct {
 
 func (x *HTTP) Reset() {
 	*x = HTTP{}
-	mi := &file_common_proto_msgTypes[7]
+	mi := &file_common_proto_msgTypes[8]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -611,7 +715,7 @@ func (x *HTTP) String() string {
 func (*HTTP) ProtoMessage() {}
 
 func (x *HTTP) ProtoReflect() protoreflect.Message {
-	mi := &file_common_proto_msgTypes[7]
+	mi := &file_common_proto_msgTypes[8]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -624,7 +728,7 @@ func (x *HTTP) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use HTTP.ProtoReflect.Descriptor instead.
 func (*HTTP) Descriptor() ([]byte, []int) {
-	return file_common_proto_rawDescGZIP(), []int{7}
+	return file_common_proto_rawDescGZIP(), []int{8}
 }
 
 func (x *HTTP) GetHost() string {
@@ -673,7 +777,7 @@ type Pprof struct {
 
 func (x *Pprof) Reset() {
 	*x = Pprof{}
-	mi := &file_common_proto_msgTypes[8]
+	mi := &file_common_proto_msgTypes[9]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -685,7 +789,7 @@ func (x *Pprof) String() string {
 func (*Pprof) ProtoMessage() {}
 
 func (x *Pprof) ProtoReflect() protoreflect.Message {
-	mi := &file_common_proto_msgTypes[8]
+	mi := &file_common_proto_msgTypes[9]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -698,7 +802,7 @@ func (x *Pprof) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use Pprof.ProtoReflect.Descriptor instead.
 func (*Pprof) Descriptor() ([]byte, []int) {
-	return file_common_proto_rawDescGZIP(), []int{8}
+	return file_common_proto_rawDescGZIP(), []int{9}
 }
 
 func (x *Pprof) GetEnable() bool {
@@ -733,7 +837,7 @@ type Log struct {
 
 func (x *Log) Reset() {
 	*x = Log{}
-	mi := &file_common_proto_msgTypes[9]
+	mi := &file_common_proto_msgTypes[10]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -745,7 +849,7 @@ func (x *Log) String() string {
 func (*Log) ProtoMessage() {}
 
 func (x *Log) ProtoReflect() protoreflect.Message {
-	mi := &file_common_proto_msgTypes[9]
+	mi := &file_common_proto_msgTypes[10]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -758,7 +862,7 @@ func (x *Log) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use Log.ProtoReflect.Descriptor instead.
 func (*Log) Descriptor() ([]byte, []int) {
-	return file_common_proto_rawDescGZIP(), []int{9}
+	return file_common_proto_rawDescGZIP(), []int{10}
 }
 
 func (x *Log) GetMode() string {
@@ -797,7 +901,7 @@ type Security struct {
 
 func (x *Security) Reset() {
 	*x = Security{}
-	mi := &file_common_proto_msgTypes[10]
+	mi := &file_common_proto_msgTypes[11]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -809,7 +913,7 @@ func (x *Security) String() string {
 func (*Security) ProtoMessage() {}
 
 func (x *Security) ProtoReflect() protoreflect.Message {
-	mi := &file_common_proto_msgTypes[10]
+	mi := &file_common_proto_msgTypes[11]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -822,7 +926,7 @@ func (x *Security) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use Security.ProtoReflect.Descriptor instead.
 func (*Security) Descriptor() ([]byte, []int) {
-	return file_common_proto_rawDescGZIP(), []int{10}
+	return file_common_proto_rawDescGZIP(), []int{11}
 }
 
 func (x *Security) GetJwtSecret() string {
@@ -899,10 +1003,19 @@ const file_common_proto_rawDesc = "" +
 	"\x05Redis\x12\x12\n" +
 	"\x04host\x18\x01 \x01(\tR\x04host\x12\x12\n" +
 	"\x04port\x18\x02 \x01(\x05R\x04port\x12\x1a\n" +
-	"\bpassword\x18\x03 \x01(\tR\bpassword\"(\n" +
+	"\bpassword\x18\x03 \x01(\tR\bpassword\"B\n" +
 	"\x06Server\x12\x1e\n" +
 	"\x04http\x18\x01 \x01(\v2\n" +
-	".conf.HTTPR\x04http\"\xa8\x01\n" +
+	".conf.HTTPR\x04http\x12\x18\n" +
+	"\x02ws\x18\x02 \x01(\v2\b.conf.WSR\x02ws\"\x8e\x02\n" +
+	"\x02WS\x12\x16\n" +
+	"\x06enable\x18\x01 \x01(\bR\x06enable\x12\x12\n" +
+	"\x04host\x18\x02 \x01(\tR\x04host\x12\x12\n" +
+	"\x04port\x18\x03 \x01(\rR\x04port\x12+\n" +
+	"\x11heartbeat_seconds\x18\x04 \x01(\rR\x10heartbeatSeconds\x120\n" +
+	"\x14pong_timeout_seconds\x18\x05 \x01(\rR\x12pongTimeoutSeconds\x127\n" +
+	"\x18max_connections_per_user\x18\x06 \x01(\rR\x15maxConnectionsPerUser\x120\n" +
+	"\x14max_lifetime_seconds\x18\a \x01(\rR\x12maxLifetimeSeconds\"\xa8\x01\n" +
 	"\x04HTTP\x12\x12\n" +
 	"\x04host\x18\x01 \x01(\tR\x04host\x12\x12\n" +
 	"\x04port\x18\x02 \x01(\rR\x04port\x12!\n" +
@@ -935,7 +1048,7 @@ func file_common_proto_rawDescGZIP() []byte {
 	return file_common_proto_rawDescData
 }
 
-var file_common_proto_msgTypes = make([]protoimpl.MessageInfo, 12)
+var file_common_proto_msgTypes = make([]protoimpl.MessageInfo, 13)
 var file_common_proto_goTypes = []any{
 	(*Bootstrap)(nil), // 0: conf.Bootstrap
 	(*Etcd)(nil),      // 1: conf.Etcd
@@ -944,29 +1057,31 @@ var file_common_proto_goTypes = []any{
 	(*DB)(nil),        // 4: conf.DB
 	(*Redis)(nil),     // 5: conf.Redis
 	(*Server)(nil),    // 6: conf.Server
-	(*HTTP)(nil),      // 7: conf.HTTP
-	(*Pprof)(nil),     // 8: conf.Pprof
-	(*Log)(nil),       // 9: conf.Log
-	(*Security)(nil),  // 10: conf.Security
-	nil,               // 11: conf.Otel.HeadersEntry
+	(*WS)(nil),        // 7: conf.WS
+	(*HTTP)(nil),      // 8: conf.HTTP
+	(*Pprof)(nil),     // 9: conf.Pprof
+	(*Log)(nil),       // 10: conf.Log
+	(*Security)(nil),  // 11: conf.Security
+	nil,               // 12: conf.Otel.HeadersEntry
 }
 var file_common_proto_depIdxs = []int32{
 	6,  // 0: conf.Bootstrap.server:type_name -> conf.Server
-	9,  // 1: conf.Bootstrap.log:type_name -> conf.Log
+	10, // 1: conf.Bootstrap.log:type_name -> conf.Log
 	2,  // 2: conf.Bootstrap.otel:type_name -> conf.Otel
 	3,  // 3: conf.Bootstrap.data:type_name -> conf.Data
-	10, // 4: conf.Bootstrap.security:type_name -> conf.Security
+	11, // 4: conf.Bootstrap.security:type_name -> conf.Security
 	1,  // 5: conf.Bootstrap.etcd:type_name -> conf.Etcd
-	11, // 6: conf.Otel.headers:type_name -> conf.Otel.HeadersEntry
+	12, // 6: conf.Otel.headers:type_name -> conf.Otel.HeadersEntry
 	4,  // 7: conf.Data.db:type_name -> conf.DB
 	5,  // 8: conf.Data.redis:type_name -> conf.Redis
-	7,  // 9: conf.Server.http:type_name -> conf.HTTP
-	8,  // 10: conf.HTTP.pprof:type_name -> conf.Pprof
-	11, // [11:11] is the sub-list for method output_type
-	11, // [11:11] is the sub-list for method input_type
-	11, // [11:11] is the sub-list for extension type_name
-	11, // [11:11] is the sub-list for extension extendee
-	0,  // [0:11] is the sub-list for field type_name
+	8,  // 9: conf.Server.http:type_name -> conf.HTTP
+	7,  // 10: conf.Server.ws:type_name -> conf.WS
+	9,  // 11: conf.HTTP.pprof:type_name -> conf.Pprof
+	12, // [12:12] is the sub-list for method output_type
+	12, // [12:12] is the sub-list for method input_type
+	12, // [12:12] is the sub-list for extension type_name
+	12, // [12:12] is the sub-list for extension extendee
+	0,  // [0:12] is the sub-list for field type_name
 }
 
 func init() { file_common_proto_init() }
@@ -980,7 +1095,7 @@ func file_common_proto_init() {
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_common_proto_rawDesc), len(file_common_proto_rawDesc)),
 			NumEnums:      0,
-			NumMessages:   12,
+			NumMessages:   13,
 			NumExtensions: 0,
 			NumServices:   0,
 		},

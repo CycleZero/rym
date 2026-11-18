@@ -64,6 +64,14 @@ func (x *HTTP) Addr() string {
 	return net.JoinHostPort(x.GetHost(), strconv.Itoa(int(x.GetPort())))
 }
 
+// Addr 返回 WS 监听地址。
+func (x *WS) Addr() string {
+	if x == nil {
+		return ""
+	}
+	return net.JoinHostPort(x.GetHost(), strconv.Itoa(int(x.GetPort())))
+}
+
 // Validate 校验启动必需项，避免带着空地址/端口跑到运行期才报错。
 //
 // 安全相关配置 **fail-closed**：需要本地鉴权却没有密钥时启动失败，

@@ -36,6 +36,15 @@ data:
     password: "${REDIS_PASSWORD:}"
 
 server:
+  # 桌面/移动客户端的 WebSocket 实时推送（独立端口）。
+  ws:
+    enable: "${WS_ENABLE:true}"
+    host: "${WS_HOST:0.0.0.0}"
+    port: "${WS_PORT:8001}"
+    heartbeat_seconds: "${WS_HEARTBEAT:25}"
+    pong_timeout_seconds: "${WS_PONG_TIMEOUT:10}"
+    max_connections_per_user: "${WS_MAX_CONNS:5}"
+    max_lifetime_seconds: "${WS_MAX_LIFETIME:86400}"
   http:
     host: "${HTTP_HOST:0.0.0.0}"
     port: "${HTTP_PORT:8000}"
