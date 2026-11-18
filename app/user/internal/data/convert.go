@@ -1,6 +1,8 @@
 package data
 
 import (
+	"strings"
+
 	"github.com/CycleZero/rym/app/user/internal/biz"
 )
 
@@ -21,14 +23,17 @@ func (po *UserPO) toBiz() *biz.User {
 }
 
 // fromBiz 把领域模型完整转换为 PO。
+//
+// nickname_lower 是搜索用的派生列：在这里统一生成，注册/改昵称都不会漏。
 func fromBiz(u *biz.User) *UserPO {
 	return &UserPO{
-		ID:           u.ID,
-		Username:     u.Username,
-		PasswordHash: u.PasswordHash,
-		Nickname:     u.Nickname,
-		Status:       u.Status,
-		CreatedAt:    u.CreatedAt,
-		UpdatedAt:    u.UpdatedAt,
+		ID:            u.ID,
+		Username:      u.Username,
+		PasswordHash:  u.PasswordHash,
+		Nickname:      u.Nickname,
+		NicknameLower: strings.ToLower(u.Nickname),
+		Status:        u.Status,
+		CreatedAt:     u.CreatedAt,
+		UpdatedAt:     u.UpdatedAt,
 	}
 }

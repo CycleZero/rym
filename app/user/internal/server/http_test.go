@@ -13,6 +13,7 @@ import (
 	"net/http/httptest"
 	"os"
 	"path/filepath"
+	"sort"
 	"strings"
 	"testing"
 	"time"
@@ -62,16 +63,30 @@ func newHTTPServer(t *testing.T) *httptest.Server {
 	sqlDB.SetMaxOpenConns(1)
 	t.Cleanup(func() { _ = sqlDB.Close() })
 
-	src, err := os.ReadFile(filepath.Join("..", "..", "migrations", "001_init_sqlite.sql"))
+	dir := filepath.Join("..", "..", "migrations")
+	entries, err := os.ReadDir(dir)
 	if err != nil {
-		t.Fatalf("读取迁移脚本失败：%v", err)
+		t.Fatalf("读取迁移目录失败：%v", err)
 	}
-	for _, stmt := range strings.Split(string(src), ";") {
-		if strings.TrimSpace(stmt) == "" {
-			continue
+	var files []string
+	for _, e := range entries {
+		if !e.IsDir() && strings.HasSuffix(e.Name(), "_sqlite.sql") {
+			files = append(files, e.Name())
 		}
-		if err := db.Exec(stmt).Error; err != nil {
-			t.Fatalf("执行迁移失败：%v", err)
+	}
+	sort.Strings(files)
+	for _, name := range files {
+		src, err := os.ReadFile(filepath.Join(dir, name))
+		if err != nil {
+			t.Fatalf("读取迁移脚本 %s 失败：%v", name, err)
+		}
+		for _, stmt := range strings.Split(string(src), ";") {
+			if strings.TrimSpace(stmt) == "" {
+				continue
+			}
+			if err := db.Exec(stmt).Error; err != nil {
+				t.Fatalf("执行迁移 %s 失败：%v", name, err)
+			}
 		}
 	}
 
@@ -239,6 +254,9 @@ func TestRoutesRegisteredFromProto(t *testing.T) {
 		"POST /v1/users/register",
 		"POST /v1/users/login",
 		"GET /v1/users/me",
+		"GET /v1/users/search",
+		"GET /v1/users/{id}",
+		"POST /v1/users/batch",
 	}
 	for _, w := range want {
 		found := false
@@ -263,5 +281,14 @@ func (fakeService) Login(ctx context.Context, req *v1.LoginRequest) (*v1.LoginRe
 	return nil, nil
 }
 func (fakeService) GetMe(ctx context.Context, req *v1.GetMeRequest) (*v1.User, error) {
+	return nil, nil
+}
+func (fakeService) GetUser(ctx context.Context, req *v1.GetUserRequest) (*v1.User, error) {
+	return nil, nil
+}
+func (fakeService) BatchGetUsers(ctx context.Context, req *v1.BatchGetUsersRequest) (*v1.BatchGetUsersResponse, error) {
+	return nil, nil
+}
+func (fakeService) SearchUsers(ctx context.Context, req *v1.SearchUsersRequest) (*v1.SearchUsersResponse, error) {
 	return nil, nil
 }

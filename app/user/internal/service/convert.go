@@ -28,6 +28,15 @@ func toProtoUser(u *biz.User) *v1.User {
 	}
 }
 
+// toProtoUserList 批量转换（保持非 nil 切片，避免 JSON 输出 null）。
+func toProtoUserList(users []*biz.User) []*v1.User {
+	out := make([]*v1.User, 0, len(users))
+	for _, u := range users {
+		out = append(out, toProtoUser(u))
+	}
+	return out
+}
+
 // formatTime 统一时间格式；零值输出空串（对外不暴露 0001-01-01）。
 func formatTime(t time.Time) string {
 	if t.IsZero() {

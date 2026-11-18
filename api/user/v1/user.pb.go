@@ -333,6 +333,245 @@ func (*GetMeRequest) Descriptor() ([]byte, []int) {
 	return file_user_v1_user_proto_rawDescGZIP(), []int{4}
 }
 
+type GetUserRequest struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Id            uint64                 `protobuf:"varint,1,opt,name=id,proto3" json:"id,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *GetUserRequest) Reset() {
+	*x = GetUserRequest{}
+	mi := &file_user_v1_user_proto_msgTypes[5]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *GetUserRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*GetUserRequest) ProtoMessage() {}
+
+func (x *GetUserRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_user_v1_user_proto_msgTypes[5]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use GetUserRequest.ProtoReflect.Descriptor instead.
+func (*GetUserRequest) Descriptor() ([]byte, []int) {
+	return file_user_v1_user_proto_rawDescGZIP(), []int{5}
+}
+
+func (x *GetUserRequest) GetId() uint64 {
+	if x != nil {
+		return x.Id
+	}
+	return 0
+}
+
+type BatchGetUsersRequest struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Ids           []uint64               `protobuf:"varint,1,rep,packed,name=ids,proto3" json:"ids,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *BatchGetUsersRequest) Reset() {
+	*x = BatchGetUsersRequest{}
+	mi := &file_user_v1_user_proto_msgTypes[6]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *BatchGetUsersRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*BatchGetUsersRequest) ProtoMessage() {}
+
+func (x *BatchGetUsersRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_user_v1_user_proto_msgTypes[6]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use BatchGetUsersRequest.ProtoReflect.Descriptor instead.
+func (*BatchGetUsersRequest) Descriptor() ([]byte, []int) {
+	return file_user_v1_user_proto_rawDescGZIP(), []int{6}
+}
+
+func (x *BatchGetUsersRequest) GetIds() []uint64 {
+	if x != nil {
+		return x.Ids
+	}
+	return nil
+}
+
+type BatchGetUsersResponse struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	List          []*User                `protobuf:"bytes,1,rep,name=list,proto3" json:"list,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *BatchGetUsersResponse) Reset() {
+	*x = BatchGetUsersResponse{}
+	mi := &file_user_v1_user_proto_msgTypes[7]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *BatchGetUsersResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*BatchGetUsersResponse) ProtoMessage() {}
+
+func (x *BatchGetUsersResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_user_v1_user_proto_msgTypes[7]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use BatchGetUsersResponse.ProtoReflect.Descriptor instead.
+func (*BatchGetUsersResponse) Descriptor() ([]byte, []int) {
+	return file_user_v1_user_proto_rawDescGZIP(), []int{7}
+}
+
+func (x *BatchGetUsersResponse) GetList() []*User {
+	if x != nil {
+		return x.List
+	}
+	return nil
+}
+
+type SearchUsersRequest struct {
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// 前缀关键词；服务端 trim + 小写后匹配 username / nickname。
+	Keyword string `protobuf:"bytes,1,opt,name=keyword,proto3" json:"keyword,omitempty"`
+	// 0 表示使用服务端默认值（20），最大 50。
+	Limit         int32 `protobuf:"varint,2,opt,name=limit,proto3" json:"limit,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *SearchUsersRequest) Reset() {
+	*x = SearchUsersRequest{}
+	mi := &file_user_v1_user_proto_msgTypes[8]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *SearchUsersRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*SearchUsersRequest) ProtoMessage() {}
+
+func (x *SearchUsersRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_user_v1_user_proto_msgTypes[8]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use SearchUsersRequest.ProtoReflect.Descriptor instead.
+func (*SearchUsersRequest) Descriptor() ([]byte, []int) {
+	return file_user_v1_user_proto_rawDescGZIP(), []int{8}
+}
+
+func (x *SearchUsersRequest) GetKeyword() string {
+	if x != nil {
+		return x.Keyword
+	}
+	return ""
+}
+
+func (x *SearchUsersRequest) GetLimit() int32 {
+	if x != nil {
+		return x.Limit
+	}
+	return 0
+}
+
+type SearchUsersResponse struct {
+	state protoimpl.MessageState `protogen:"open.v1"`
+	List  []*User                `protobuf:"bytes,1,rep,name=list,proto3" json:"list,omitempty"`
+	// 本次是否被 limit 截断（typeahead 场景不做游标）。
+	HasMore       bool `protobuf:"varint,2,opt,name=has_more,json=hasMore,proto3" json:"has_more,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *SearchUsersResponse) Reset() {
+	*x = SearchUsersResponse{}
+	mi := &file_user_v1_user_proto_msgTypes[9]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *SearchUsersResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*SearchUsersResponse) ProtoMessage() {}
+
+func (x *SearchUsersResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_user_v1_user_proto_msgTypes[9]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use SearchUsersResponse.ProtoReflect.Descriptor instead.
+func (*SearchUsersResponse) Descriptor() ([]byte, []int) {
+	return file_user_v1_user_proto_rawDescGZIP(), []int{9}
+}
+
+func (x *SearchUsersResponse) GetList() []*User {
+	if x != nil {
+		return x.List
+	}
+	return nil
+}
+
+func (x *SearchUsersResponse) GetHasMore() bool {
+	if x != nil {
+		return x.HasMore
+	}
+	return false
+}
+
 var File_user_v1_user_proto protoreflect.FileDescriptor
 
 const file_user_v1_user_proto_rawDesc = "" +
@@ -361,11 +600,26 @@ const file_user_v1_user_proto_rawDesc = "" +
 	"\n" +
 	"expires_at\x18\x03 \x01(\x03R\texpiresAt\x12%\n" +
 	"\x04user\x18\x04 \x01(\v2\x11.api.user.v1.UserR\x04user\"\x0e\n" +
-	"\fGetMeRequest2\x92\x02\n" +
+	"\fGetMeRequest\" \n" +
+	"\x0eGetUserRequest\x12\x0e\n" +
+	"\x02id\x18\x01 \x01(\x04R\x02id\"(\n" +
+	"\x14BatchGetUsersRequest\x12\x10\n" +
+	"\x03ids\x18\x01 \x03(\x04R\x03ids\">\n" +
+	"\x15BatchGetUsersResponse\x12%\n" +
+	"\x04list\x18\x01 \x03(\v2\x11.api.user.v1.UserR\x04list\"D\n" +
+	"\x12SearchUsersRequest\x12\x18\n" +
+	"\akeyword\x18\x01 \x01(\tR\akeyword\x12\x14\n" +
+	"\x05limit\x18\x02 \x01(\x05R\x05limit\"W\n" +
+	"\x13SearchUsersResponse\x12%\n" +
+	"\x04list\x18\x01 \x03(\v2\x11.api.user.v1.UserR\x04list\x12\x19\n" +
+	"\bhas_more\x18\x02 \x01(\bR\ahasMore2\xc5\x04\n" +
 	"\vUserService\x12Z\n" +
 	"\bRegister\x12\x1c.api.user.v1.RegisterRequest\x1a\x11.api.user.v1.User\"\x1d\x82\xd3\xe4\x93\x02\x17:\x01*\"\x12/v1/users/register\x12Z\n" +
 	"\x05Login\x12\x19.api.user.v1.LoginRequest\x1a\x1a.api.user.v1.LoginResponse\"\x1a\x82\xd3\xe4\x93\x02\x14:\x01*\"\x0f/v1/users/login\x12K\n" +
-	"\x05GetMe\x12\x19.api.user.v1.GetMeRequest\x1a\x11.api.user.v1.User\"\x14\x82\xd3\xe4\x93\x02\x0e\x12\f/v1/users/meB)Z'github.com/CycleZero/rym/api/user/v1;v1b\x06proto3"
+	"\x05GetMe\x12\x19.api.user.v1.GetMeRequest\x1a\x11.api.user.v1.User\"\x14\x82\xd3\xe4\x93\x02\x0e\x12\f/v1/users/me\x12j\n" +
+	"\vSearchUsers\x12\x1f.api.user.v1.SearchUsersRequest\x1a .api.user.v1.SearchUsersResponse\"\x18\x82\xd3\xe4\x93\x02\x12\x12\x10/v1/users/search\x12Q\n" +
+	"\aGetUser\x12\x1b.api.user.v1.GetUserRequest\x1a\x11.api.user.v1.User\"\x16\x82\xd3\xe4\x93\x02\x10\x12\x0e/v1/users/{id}\x12r\n" +
+	"\rBatchGetUsers\x12!.api.user.v1.BatchGetUsersRequest\x1a\".api.user.v1.BatchGetUsersResponse\"\x1a\x82\xd3\xe4\x93\x02\x14:\x01*\"\x0f/v1/users/batchB)Z'github.com/CycleZero/rym/api/user/v1;v1b\x06proto3"
 
 var (
 	file_user_v1_user_proto_rawDescOnce sync.Once
@@ -379,27 +633,40 @@ func file_user_v1_user_proto_rawDescGZIP() []byte {
 	return file_user_v1_user_proto_rawDescData
 }
 
-var file_user_v1_user_proto_msgTypes = make([]protoimpl.MessageInfo, 5)
+var file_user_v1_user_proto_msgTypes = make([]protoimpl.MessageInfo, 10)
 var file_user_v1_user_proto_goTypes = []any{
-	(*User)(nil),            // 0: api.user.v1.User
-	(*RegisterRequest)(nil), // 1: api.user.v1.RegisterRequest
-	(*LoginRequest)(nil),    // 2: api.user.v1.LoginRequest
-	(*LoginResponse)(nil),   // 3: api.user.v1.LoginResponse
-	(*GetMeRequest)(nil),    // 4: api.user.v1.GetMeRequest
+	(*User)(nil),                  // 0: api.user.v1.User
+	(*RegisterRequest)(nil),       // 1: api.user.v1.RegisterRequest
+	(*LoginRequest)(nil),          // 2: api.user.v1.LoginRequest
+	(*LoginResponse)(nil),         // 3: api.user.v1.LoginResponse
+	(*GetMeRequest)(nil),          // 4: api.user.v1.GetMeRequest
+	(*GetUserRequest)(nil),        // 5: api.user.v1.GetUserRequest
+	(*BatchGetUsersRequest)(nil),  // 6: api.user.v1.BatchGetUsersRequest
+	(*BatchGetUsersResponse)(nil), // 7: api.user.v1.BatchGetUsersResponse
+	(*SearchUsersRequest)(nil),    // 8: api.user.v1.SearchUsersRequest
+	(*SearchUsersResponse)(nil),   // 9: api.user.v1.SearchUsersResponse
 }
 var file_user_v1_user_proto_depIdxs = []int32{
 	0, // 0: api.user.v1.LoginResponse.user:type_name -> api.user.v1.User
-	1, // 1: api.user.v1.UserService.Register:input_type -> api.user.v1.RegisterRequest
-	2, // 2: api.user.v1.UserService.Login:input_type -> api.user.v1.LoginRequest
-	4, // 3: api.user.v1.UserService.GetMe:input_type -> api.user.v1.GetMeRequest
-	0, // 4: api.user.v1.UserService.Register:output_type -> api.user.v1.User
-	3, // 5: api.user.v1.UserService.Login:output_type -> api.user.v1.LoginResponse
-	0, // 6: api.user.v1.UserService.GetMe:output_type -> api.user.v1.User
-	4, // [4:7] is the sub-list for method output_type
-	1, // [1:4] is the sub-list for method input_type
-	1, // [1:1] is the sub-list for extension type_name
-	1, // [1:1] is the sub-list for extension extendee
-	0, // [0:1] is the sub-list for field type_name
+	0, // 1: api.user.v1.BatchGetUsersResponse.list:type_name -> api.user.v1.User
+	0, // 2: api.user.v1.SearchUsersResponse.list:type_name -> api.user.v1.User
+	1, // 3: api.user.v1.UserService.Register:input_type -> api.user.v1.RegisterRequest
+	2, // 4: api.user.v1.UserService.Login:input_type -> api.user.v1.LoginRequest
+	4, // 5: api.user.v1.UserService.GetMe:input_type -> api.user.v1.GetMeRequest
+	8, // 6: api.user.v1.UserService.SearchUsers:input_type -> api.user.v1.SearchUsersRequest
+	5, // 7: api.user.v1.UserService.GetUser:input_type -> api.user.v1.GetUserRequest
+	6, // 8: api.user.v1.UserService.BatchGetUsers:input_type -> api.user.v1.BatchGetUsersRequest
+	0, // 9: api.user.v1.UserService.Register:output_type -> api.user.v1.User
+	3, // 10: api.user.v1.UserService.Login:output_type -> api.user.v1.LoginResponse
+	0, // 11: api.user.v1.UserService.GetMe:output_type -> api.user.v1.User
+	9, // 12: api.user.v1.UserService.SearchUsers:output_type -> api.user.v1.SearchUsersResponse
+	0, // 13: api.user.v1.UserService.GetUser:output_type -> api.user.v1.User
+	7, // 14: api.user.v1.UserService.BatchGetUsers:output_type -> api.user.v1.BatchGetUsersResponse
+	9, // [9:15] is the sub-list for method output_type
+	3, // [3:9] is the sub-list for method input_type
+	3, // [3:3] is the sub-list for extension type_name
+	3, // [3:3] is the sub-list for extension extendee
+	0, // [0:3] is the sub-list for field type_name
 }
 
 func init() { file_user_v1_user_proto_init() }
@@ -413,7 +680,7 @@ func file_user_v1_user_proto_init() {
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_user_v1_user_proto_rawDesc), len(file_user_v1_user_proto_rawDesc)),
 			NumEnums:      0,
-			NumMessages:   5,
+			NumMessages:   10,
 			NumExtensions: 0,
 			NumServices:   1,
 		},

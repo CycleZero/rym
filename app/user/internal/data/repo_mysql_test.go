@@ -13,6 +13,8 @@ import (
 	"context"
 	"errors"
 	"os"
+	"path/filepath"
+	"sort"
 	"strings"
 	"testing"
 
@@ -44,18 +46,7 @@ func TestMySQLUserAcceptance(t *testing.T) {
 	sqlDB.SetMaxOpenConns(5)
 	t.Cleanup(func() { _ = sqlDB.Close() })
 
-	src, err := os.ReadFile("../../migrations/001_init_mysql.sql")
-	if err != nil {
-		t.Fatalf("读取 MySQL 迁移失败：%v", err)
-	}
-	for _, stmt := range strings.Split(string(src), ";") {
-		if strings.TrimSpace(stmt) == "" {
-			continue
-		}
-		if err := db.Exec(stmt).Error; err != nil {
-			t.Fatalf("执行 MySQL 迁移失败：%v\nSQL: %s", err, stmt)
-		}
-	}
+	applyMySQLMigrations(t, db)
 	if err := db.Exec("DELETE FROM `users`").Error; err != nil {
 		t.Fatalf("清空 users 失败：%v", err)
 	}
@@ -85,5 +76,51 @@ func TestMySQLUserAcceptance(t *testing.T) {
 
 	if _, err := uc.Login(ctx, biz.LoginInput{Username: "mysql_alice", Password: "wrong-password"}); !errors.Is(err, biz.ErrInvalidCredentials) {
 		t.Fatalf("密码错误应返回 ErrInvalidCredentials，实际 %v", err)
+	}
+}
+
+func applyMySQLMigrations(t *testing.T, db *gorm.DB) {
+	t.Helper()
+	if err := db.Exec("CREATE TABLE IF NOT EXISTS schema_migrations (name VARCHAR(255) NOT NULL, applied_at DATETIME NOT NULL, PRIMARY KEY (name)) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4").Error; err != nil {
+		t.Fatalf("创建 schema_migrations 失败：%v", err)
+	}
+
+	dir := "../../migrations"
+	entries, err := os.ReadDir(dir)
+	if err != nil {
+		t.Fatalf("读取 MySQL 迁移目录失败：%v", err)
+	}
+	var files []string
+	for _, e := range entries {
+		if !e.IsDir() && strings.HasSuffix(e.Name(), "_mysql.sql") {
+			files = append(files, e.Name())
+		}
+	}
+	sort.Strings(files)
+	for _, name := range files {
+		// 与 make migrate 使用同一个相对路径作为迁移标识。
+		key := "app/user/migrations/" + name
+		var applied int64
+		if err := db.Raw("SELECT COUNT(*) FROM schema_migrations WHERE name = ?", key).Scan(&applied).Error; err != nil {
+			t.Fatalf("查询迁移记录失败：%v", err)
+		}
+		if applied > 0 {
+			continue
+		}
+		src, err := os.ReadFile(filepath.Join(dir, name))
+		if err != nil {
+			t.Fatalf("读取 MySQL 迁移 %s 失败：%v", name, err)
+		}
+		for _, stmt := range strings.Split(string(src), ";") {
+			if strings.TrimSpace(stmt) == "" {
+				continue
+			}
+			if err := db.Exec(stmt).Error; err != nil {
+				t.Fatalf("执行 MySQL 迁移 %s 失败：%v\nSQL: %s", name, err, stmt)
+			}
+		}
+		if err := db.Exec("INSERT INTO schema_migrations(name, applied_at) VALUES (?, NOW())", key).Error; err != nil {
+			t.Fatalf("记录迁移 %s 失败：%v", name, err)
+		}
 	}
 }

@@ -43,6 +43,47 @@ func (s *UserService) Register(ctx context.Context, req *v1.RegisterRequest) (*v
 	return toProtoUser(user), nil
 }
 
+// GetUser 按 id 获取公开资料。
+func (s *UserService) GetUser(ctx context.Context, req *v1.GetUserRequest) (*v1.User, error) {
+	if _, err := requireUser(ctx); err != nil {
+		return nil, err
+	}
+	user, err := s.uc.GetByID(ctx, req.GetId())
+	if err != nil {
+		// 禁用用户对外表现为不存在，避免通过 403/404 差异探测账号状态。
+		if errors.Is(err, biz.ErrUserNotFound) || errors.Is(err, biz.ErrAccountDisabled) {
+			return nil, errs.NotFound("用户不存在")
+		}
+		return nil, err
+	}
+	return toProtoUser(user), nil
+}
+
+// BatchGetUsers 批量获取公开资料。
+func (s *UserService) BatchGetUsers(ctx context.Context, req *v1.BatchGetUsersRequest) (*v1.BatchGetUsersResponse, error) {
+	if _, err := requireUser(ctx); err != nil {
+		return nil, err
+	}
+	users, err := s.uc.GetByIDs(ctx, req.GetIds())
+	if err != nil {
+		return nil, err
+	}
+	return &v1.BatchGetUsersResponse{List: toProtoUserList(users)}, nil
+}
+
+// SearchUsers 前缀搜索用户。
+func (s *UserService) SearchUsers(ctx context.Context, req *v1.SearchUsersRequest) (*v1.SearchUsersResponse, error) {
+	viewerID, err := requireUser(ctx)
+	if err != nil {
+		return nil, err
+	}
+	users, hasMore, err := s.uc.Search(ctx, viewerID, req.GetKeyword(), int(req.GetLimit()))
+	if err != nil {
+		return nil, err
+	}
+	return &v1.SearchUsersResponse{List: toProtoUserList(users), HasMore: hasMore}, nil
+}
+
 // Login 登录并签发令牌。
 func (s *UserService) Login(ctx context.Context, req *v1.LoginRequest) (*v1.LoginResponse, error) {
 	user, err := s.uc.Login(ctx, biz.LoginInput{
@@ -65,10 +106,21 @@ func (s *UserService) Login(ctx context.Context, req *v1.LoginRequest) (*v1.Logi
 	}, nil
 }
 
+// requireUser 取当前登录用户；0 表示匿名，统一返回 401。
+func requireUser(ctx context.Context) (uint64, error) {
+	userID := uint64(common.Metadata(ctx).UserID)
+	if userID == 0 {
+		return 0, errs.Unauthorized("请先登录")
+	}
+	return userID, nil
+}
+
 // GetMe 当前登录用户。
 func (s *UserService) GetMe(ctx context.Context, _ *v1.GetMeRequest) (*v1.User, error) {
-	// 身份由 transport 中间件写入 ctx；0 表示匿名。
-	userID := uint64(common.Metadata(ctx).UserID)
+	userID, err := requireUser(ctx)
+	if err != nil {
+		return nil, err
+	}
 	user, err := s.uc.GetByID(ctx, userID)
 	if err != nil {
 		// 令牌签名有效但用户已被删除：对客户端应表现为"登录失效"，

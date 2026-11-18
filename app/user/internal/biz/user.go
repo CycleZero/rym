@@ -63,6 +63,13 @@ type Repo interface {
 
 	// GetByID 按主键查询；不存在返回 nil, nil。
 	GetByID(ctx context.Context, id uint64) (*User, error)
+
+	// GetByIDs 批量查询正常状态用户；不存在的 id 直接忽略。
+	GetByIDs(ctx context.Context, ids []uint64) ([]*User, error)
+
+	// Search 按 username / nickname 前缀搜索正常状态用户。
+	// keyword 已由 biz 归一化；excludeID 用于排除自己。
+	Search(ctx context.Context, keyword string, excludeID uint64, limit int) ([]*User, error)
 }
 
 // Settings 用户模块的业务参数；由组合根从服务配置转换（biz 不 import conf）。

@@ -17,13 +17,20 @@ var _ = new(context.Context)
 
 const _ = http.SupportPackageIsVersion3
 
+const OperationUserServiceBatchGetUsers = "/api.user.v1.UserService/BatchGetUsers"
 const OperationUserServiceGetMe = "/api.user.v1.UserService/GetMe"
+const OperationUserServiceGetUser = "/api.user.v1.UserService/GetUser"
 const OperationUserServiceLogin = "/api.user.v1.UserService/Login"
 const OperationUserServiceRegister = "/api.user.v1.UserService/Register"
+const OperationUserServiceSearchUsers = "/api.user.v1.UserService/SearchUsers"
 
 type UserServiceHTTPServer interface {
+	// BatchGetUsers BatchGetUsers 批量获取公开资料（最多 100 个 id）。
+	BatchGetUsers(context.Context, *BatchGetUsersRequest) (*BatchGetUsersResponse, error)
 	// GetMe GetMe 当前登录用户资料（校验令牌与账号状态的最小接口）。
 	GetMe(context.Context, *GetMeRequest) (*User, error)
+	// GetUser GetUser 按 id 获取公开资料；不存在或已禁用统一 404。
+	GetUser(context.Context, *GetUserRequest) (*User, error)
 	// Login Login 登录，成功返回访问令牌。
 	//
 	// 令牌是 HS256 JWT，claim 里带 user_id；后续请求用
@@ -36,6 +43,11 @@ type UserServiceHTTPServer interface {
 	// 带来的跨库不一致）；password 用 bcrypt 哈希，永不出现在响应里。
 	// 重复用户名返回 409。
 	Register(context.Context, *RegisterRequest) (*User, error)
+	// SearchUsers SearchUsers 按 username / nickname 前缀搜索用户（typeahead）。
+	//
+	// 只返回正常状态用户，最多 50 条；空关键词返回空列表。
+	// 搜索需要登录，避免匿名枚举用户。
+	SearchUsers(context.Context, *SearchUsersRequest) (*SearchUsersResponse, error)
 }
 
 func RegisterUserServiceHTTPServer(s *http.Server, srv UserServiceHTTPServer) {
@@ -43,6 +55,9 @@ func RegisterUserServiceHTTPServer(s *http.Server, srv UserServiceHTTPServer) {
 	r.Handle("POST", "/v1/users/register", _UserService_Register0_HTTP_Handler(srv))
 	r.Handle("POST", "/v1/users/login", _UserService_Login0_HTTP_Handler(srv))
 	r.Handle("GET", "/v1/users/me", _UserService_GetMe0_HTTP_Handler(srv))
+	r.Handle("GET", "/v1/users/search", _UserService_SearchUsers0_HTTP_Handler(srv))
+	r.Handle("GET", "/v1/users/{id}", _UserService_GetUser0_HTTP_Handler(srv))
+	r.Handle("POST", "/v1/users/batch", _UserService_BatchGetUsers0_HTTP_Handler(srv))
 }
 
 func _UserService_Register0_HTTP_Handler(srv UserServiceHTTPServer) func(ctx http.Context) error {
@@ -102,9 +117,73 @@ func _UserService_GetMe0_HTTP_Handler(srv UserServiceHTTPServer) func(ctx http.C
 	}
 }
 
+func _UserService_SearchUsers0_HTTP_Handler(srv UserServiceHTTPServer) func(ctx http.Context) error {
+	return func(ctx http.Context) error {
+		var in SearchUsersRequest
+		if err := ctx.BindQuery(&in); err != nil {
+			return err
+		}
+		http.SetOperation(ctx, OperationUserServiceSearchUsers)
+		h := ctx.Middleware(func(ctx context.Context, req interface{}) (interface{}, error) {
+			return srv.SearchUsers(ctx, req.(*SearchUsersRequest))
+		})
+		out, err := h(ctx, &in)
+		if err != nil {
+			return err
+		}
+		reply := out.(*SearchUsersResponse)
+		return ctx.Result(200, reply)
+	}
+}
+
+func _UserService_GetUser0_HTTP_Handler(srv UserServiceHTTPServer) func(ctx http.Context) error {
+	return func(ctx http.Context) error {
+		var in GetUserRequest
+		if err := ctx.BindQuery(&in); err != nil {
+			return err
+		}
+		if err := ctx.BindVars(&in); err != nil {
+			return err
+		}
+		http.SetOperation(ctx, OperationUserServiceGetUser)
+		h := ctx.Middleware(func(ctx context.Context, req interface{}) (interface{}, error) {
+			return srv.GetUser(ctx, req.(*GetUserRequest))
+		})
+		out, err := h(ctx, &in)
+		if err != nil {
+			return err
+		}
+		reply := out.(*User)
+		return ctx.Result(200, reply)
+	}
+}
+
+func _UserService_BatchGetUsers0_HTTP_Handler(srv UserServiceHTTPServer) func(ctx http.Context) error {
+	return func(ctx http.Context) error {
+		var in BatchGetUsersRequest
+		if err := ctx.Bind(&in); err != nil {
+			return err
+		}
+		http.SetOperation(ctx, OperationUserServiceBatchGetUsers)
+		h := ctx.Middleware(func(ctx context.Context, req interface{}) (interface{}, error) {
+			return srv.BatchGetUsers(ctx, req.(*BatchGetUsersRequest))
+		})
+		out, err := h(ctx, &in)
+		if err != nil {
+			return err
+		}
+		reply := out.(*BatchGetUsersResponse)
+		return ctx.Result(200, reply)
+	}
+}
+
 type UserServiceHTTPClient interface {
+	// BatchGetUsers BatchGetUsers 批量获取公开资料（最多 100 个 id）。
+	BatchGetUsers(ctx context.Context, req *BatchGetUsersRequest, opts ...http.CallOption) (rsp *BatchGetUsersResponse, err error)
 	// GetMe GetMe 当前登录用户资料（校验令牌与账号状态的最小接口）。
 	GetMe(ctx context.Context, req *GetMeRequest, opts ...http.CallOption) (rsp *User, err error)
+	// GetUser GetUser 按 id 获取公开资料；不存在或已禁用统一 404。
+	GetUser(ctx context.Context, req *GetUserRequest, opts ...http.CallOption) (rsp *User, err error)
 	// Login Login 登录，成功返回访问令牌。
 	//
 	// 令牌是 HS256 JWT，claim 里带 user_id；后续请求用
@@ -117,6 +196,11 @@ type UserServiceHTTPClient interface {
 	// 带来的跨库不一致）；password 用 bcrypt 哈希，永不出现在响应里。
 	// 重复用户名返回 409。
 	Register(ctx context.Context, req *RegisterRequest, opts ...http.CallOption) (rsp *User, err error)
+	// SearchUsers SearchUsers 按 username / nickname 前缀搜索用户（typeahead）。
+	//
+	// 只返回正常状态用户，最多 50 条；空关键词返回空列表。
+	// 搜索需要登录，避免匿名枚举用户。
+	SearchUsers(ctx context.Context, req *SearchUsersRequest, opts ...http.CallOption) (rsp *SearchUsersResponse, err error)
 }
 
 type UserServiceHTTPClientImpl struct {
@@ -127,6 +211,24 @@ func NewUserServiceHTTPClient(client *http.Client) UserServiceHTTPClient {
 	return &UserServiceHTTPClientImpl{client}
 }
 
+// BatchGetUsers BatchGetUsers 批量获取公开资料（最多 100 个 id）。
+func (c *UserServiceHTTPClientImpl) BatchGetUsers(ctx context.Context, in *BatchGetUsersRequest, opts ...http.CallOption) (*BatchGetUsersResponse, error) {
+	var out BatchGetUsersResponse
+	pattern := "/v1/users/batch"
+	path := http.BuildPath(pattern, in)
+	opts = append([]http.CallOption{
+		http.Accept("application/protojson"),
+		http.ContentType("application/protojson"),
+		http.Operation(OperationUserServiceBatchGetUsers),
+		http.PathTemplate(pattern),
+	}, opts...)
+	err := c.cc.Invoke(ctx, "POST", path, in, &out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return &out, nil
+}
+
 // GetMe GetMe 当前登录用户资料（校验令牌与账号状态的最小接口）。
 func (c *UserServiceHTTPClientImpl) GetMe(ctx context.Context, in *GetMeRequest, opts ...http.CallOption) (*User, error) {
 	var out User
@@ -135,6 +237,23 @@ func (c *UserServiceHTTPClientImpl) GetMe(ctx context.Context, in *GetMeRequest,
 	opts = append([]http.CallOption{
 		http.Accept("application/protojson"),
 		http.Operation(OperationUserServiceGetMe),
+		http.PathTemplate(pattern),
+	}, opts...)
+	err := c.cc.Invoke(ctx, "GET", path, nil, &out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return &out, nil
+}
+
+// GetUser GetUser 按 id 获取公开资料；不存在或已禁用统一 404。
+func (c *UserServiceHTTPClientImpl) GetUser(ctx context.Context, in *GetUserRequest, opts ...http.CallOption) (*User, error) {
+	var out User
+	pattern := "/v1/users/{id}"
+	path := http.BuildPath(pattern, in, http.WithQueryParams())
+	opts = append([]http.CallOption{
+		http.Accept("application/protojson"),
+		http.Operation(OperationUserServiceGetUser),
 		http.PathTemplate(pattern),
 	}, opts...)
 	err := c.cc.Invoke(ctx, "GET", path, nil, &out, opts...)
@@ -182,6 +301,26 @@ func (c *UserServiceHTTPClientImpl) Register(ctx context.Context, in *RegisterRe
 		http.PathTemplate(pattern),
 	}, opts...)
 	err := c.cc.Invoke(ctx, "POST", path, in, &out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return &out, nil
+}
+
+// SearchUsers SearchUsers 按 username / nickname 前缀搜索用户（typeahead）。
+//
+// 只返回正常状态用户，最多 50 条；空关键词返回空列表。
+// 搜索需要登录，避免匿名枚举用户。
+func (c *UserServiceHTTPClientImpl) SearchUsers(ctx context.Context, in *SearchUsersRequest, opts ...http.CallOption) (*SearchUsersResponse, error) {
+	var out SearchUsersResponse
+	pattern := "/v1/users/search"
+	path := http.BuildPath(pattern, in, http.WithQueryParams())
+	opts = append([]http.CallOption{
+		http.Accept("application/protojson"),
+		http.Operation(OperationUserServiceSearchUsers),
+		http.PathTemplate(pattern),
+	}, opts...)
+	err := c.cc.Invoke(ctx, "GET", path, nil, &out, opts...)
 	if err != nil {
 		return nil, err
 	}

@@ -11,6 +11,7 @@ import (
 	"errors"
 	"os"
 	"path/filepath"
+	"sort"
 	"strings"
 	"sync"
 	"testing"
@@ -52,16 +53,30 @@ func newUsecase(t *testing.T) (*biz.Usecase, *gorm.DB) {
 
 func applyMigration(t *testing.T, db *gorm.DB) {
 	t.Helper()
-	src, err := os.ReadFile(filepath.Join("..", "..", "migrations", "001_init_sqlite.sql"))
+	dir := filepath.Join("..", "..", "migrations")
+	entries, err := os.ReadDir(dir)
 	if err != nil {
-		t.Fatalf("读取迁移脚本失败：%v", err)
+		t.Fatalf("读取迁移目录失败：%v", err)
 	}
-	for _, stmt := range strings.Split(string(src), ";") {
-		if strings.TrimSpace(stmt) == "" {
-			continue
+	var files []string
+	for _, e := range entries {
+		if !e.IsDir() && strings.HasSuffix(e.Name(), "_sqlite.sql") {
+			files = append(files, e.Name())
 		}
-		if err := db.Exec(stmt).Error; err != nil {
-			t.Fatalf("执行迁移失败：%v\nSQL: %s", err, stmt)
+	}
+	sort.Strings(files)
+	for _, name := range files {
+		src, err := os.ReadFile(filepath.Join(dir, name))
+		if err != nil {
+			t.Fatalf("读取迁移脚本 %s 失败：%v", name, err)
+		}
+		for _, stmt := range strings.Split(string(src), ";") {
+			if strings.TrimSpace(stmt) == "" {
+				continue
+			}
+			if err := db.Exec(stmt).Error; err != nil {
+				t.Fatalf("执行迁移 %s 失败：%v\nSQL: %s", name, err, stmt)
+			}
 		}
 	}
 }
@@ -241,5 +256,90 @@ func TestRegisterValidation(t *testing.T) {
 				t.Fatalf("期望 HTTP 400，实际 %d", status)
 			}
 		})
+	}
+}
+
+// TestSearchAndBatch 用户发现：前缀搜索、排序、排除自己、禁用过滤、通配符转义、批量查询。
+func TestSearchAndBatch(t *testing.T) {
+	uc, db := newUsecase(t)
+	ctx := context.Background()
+
+	alice := register(t, uc, "alice", testPassword, "Alice")
+	bob := register(t, uc, "bob", testPassword, "Bobby")
+	carol := register(t, uc, "carol", testPassword, "Carol")
+	register(t, uc, "ben", testPassword, "Ben")
+
+	// 禁用 carol：搜索与批量查询都不应返回。
+	if err := db.Model(&data.UserPO{}).Where("id = ?", carol.ID).Update("status", biz.UserStatusDisabled).Error; err != nil {
+		t.Fatalf("禁用用户失败：%v", err)
+	}
+
+	// 精确 username 优先；搜索需要排除自己。
+	list, hasMore, err := uc.Search(ctx, bob.ID, "ALICE", 10)
+	if err != nil {
+		t.Fatalf("搜索失败：%v", err)
+	}
+	if hasMore || len(list) != 1 || list[0].ID != alice.ID {
+		t.Fatalf("精确 username 搜索结果不对：%+v hasMore=%v", list, hasMore)
+	}
+
+	// nickname 前缀（Bobby -> bob），且结果按 username 命中优先。
+	list, _, err = uc.Search(ctx, alice.ID, "bob", 10)
+	if err != nil {
+		t.Fatalf("搜索失败：%v", err)
+	}
+	if len(list) != 1 || list[0].ID != bob.ID {
+		t.Fatalf("nickname 前缀搜索应命中 bob：%+v", list)
+	}
+
+	// 自己搜自己应被排除。
+	list, _, err = uc.Search(ctx, alice.ID, "ali", 10)
+	if err != nil {
+		t.Fatalf("搜索失败：%v", err)
+	}
+	if len(list) != 0 {
+		t.Fatalf("搜索结果不应包含自己：%+v", list)
+	}
+
+	// 禁用用户不出现。
+	list, _, err = uc.Search(ctx, alice.ID, "car", 10)
+	if err != nil {
+		t.Fatalf("搜索失败：%v", err)
+	}
+	if len(list) != 0 {
+		t.Fatalf("禁用用户不应出现在搜索结果：%+v", list)
+	}
+
+	// 通配符必须转义：搜索 "%" 不能返回所有用户。
+	list, _, err = uc.Search(ctx, alice.ID, "%", 10)
+	if err != nil {
+		t.Fatalf("搜索失败：%v", err)
+	}
+	if len(list) != 0 {
+		t.Fatalf("通配符未转义，返回了 %d 个用户", len(list))
+	}
+
+	// limit 截断 + has_more。
+	list, hasMore, err = uc.Search(ctx, alice.ID, "b", 1)
+	if err != nil {
+		t.Fatalf("搜索失败：%v", err)
+	}
+	if len(list) != 1 || !hasMore {
+		t.Fatalf("limit=1 应返回 1 条且 has_more=true，实际 len=%d hasMore=%v", len(list), hasMore)
+	}
+
+	// 批量查询去重、过滤禁用、忽略不存在的 id。
+	users, err := uc.GetByIDs(ctx, []uint64{alice.ID, bob.ID, alice.ID, carol.ID, 999999})
+	if err != nil {
+		t.Fatalf("批量查询失败：%v", err)
+	}
+	if len(users) != 2 {
+		t.Fatalf("批量查询应返回 2 个正常用户，实际 %d", len(users))
+	}
+
+	// 超过上限直接拒绝。
+	tooMany := make([]uint64, 101)
+	if _, err := uc.GetByIDs(ctx, tooMany); !errors.Is(err, errs.InvalidArgument("x")) {
+		t.Fatalf("超过 100 个 id 应返回 InvalidArgument，实际 %v", err)
 	}
 }

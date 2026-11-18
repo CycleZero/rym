@@ -174,3 +174,70 @@ func wrapInternal(message string, err error) error {
 	}
 	return errs.Internal(message).WithCause(err)
 }
+
+// 批量查询/搜索的上限，避免一次请求打穿数据库。
+const (
+	maxBatchUsers    = 100
+	defaultSearchNum = 20
+	maxSearchNum     = 50
+	maxKeywordRunes  = 32
+)
+
+// GetByIDs 批量获取正常状态用户；不存在的 id 直接忽略。
+func (u *Usecase) GetByIDs(ctx context.Context, ids []uint64) ([]*User, error) {
+	if len(ids) > maxBatchUsers {
+		return nil, errs.InvalidArgument("一次最多查询 100 个用户")
+	}
+	if len(ids) == 0 {
+		return []*User{}, nil
+	}
+
+	seen := make(map[uint64]struct{}, len(ids))
+	unique := make([]uint64, 0, len(ids))
+	for _, id := range ids {
+		if id == 0 {
+			continue
+		}
+		if _, ok := seen[id]; ok {
+			continue
+		}
+		seen[id] = struct{}{}
+		unique = append(unique, id)
+	}
+	users, err := u.repo.GetByIDs(ctx, unique)
+	if err != nil {
+		return nil, wrapInternal("批量查询用户失败", err)
+	}
+	return users, nil
+}
+
+// Search 按 username / nickname 前缀搜索用户。
+//
+// 空关键词返回空列表而不是全表：typeahead 场景下这是最安全的默认值。
+// 搜索结果只包含正常状态用户，并排除自己。
+func (u *Usecase) Search(ctx context.Context, viewerID uint64, keyword string, limit int) ([]*User, bool, error) {
+	keyword = strings.ToLower(strings.TrimSpace(keyword))
+	if keyword == "" {
+		return []*User{}, false, nil
+	}
+	if utf8.RuneCountInString(keyword) > maxKeywordRunes {
+		return nil, false, errs.InvalidArgument("搜索关键词不能超过 32 个字符")
+	}
+	if limit <= 0 {
+		limit = defaultSearchNum
+	}
+	if limit > maxSearchNum {
+		limit = maxSearchNum
+	}
+
+	// 多取一条判断是否被截断，避免额外 count 查询。
+	users, err := u.repo.Search(ctx, keyword, viewerID, limit+1)
+	if err != nil {
+		return nil, false, wrapInternal("搜索用户失败", err)
+	}
+	hasMore := len(users) > limit
+	if hasMore {
+		users = users[:limit]
+	}
+	return users, hasMore, nil
+}

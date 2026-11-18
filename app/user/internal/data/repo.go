@@ -3,11 +3,13 @@ package data
 import (
 	"context"
 	"errors"
+	"strings"
 
 	"github.com/CycleZero/rym/app/user/internal/biz"
 	"github.com/CycleZero/rym/pkg/tx"
 
 	"gorm.io/gorm"
+	"gorm.io/gorm/clause"
 )
 
 // repo 实现 biz.Repo。
@@ -55,6 +57,59 @@ func (r *repo) GetByUsername(ctx context.Context, username string) (*biz.User, e
 		return nil, err
 	}
 	return po.toBiz(), nil
+}
+
+// GetByIDs 批量查询正常状态用户；不存在的 id 直接忽略。
+func (r *repo) GetByIDs(ctx context.Context, ids []uint64) ([]*biz.User, error) {
+	if len(ids) == 0 {
+		return []*biz.User{}, nil
+	}
+	var pos []UserPO
+	if err := tx.WithContext(ctx, r.db).
+		Where("id IN ? AND status = ?", ids, biz.UserStatusNormal).
+		Order("id ASC").
+		Find(&pos).Error; err != nil {
+		return nil, err
+	}
+	out := make([]*biz.User, 0, len(pos))
+	for i := range pos {
+		out = append(out, pos[i].toBiz())
+	}
+	return out, nil
+}
+
+// Search 按 username / nickname 前缀搜索。
+//
+// 排序：精确 username > username 前缀 > nickname 前缀 > id。
+// LIKE 的 % / _ / ! 必须转义，否则用户输入 "%" 会变成全表匹配。
+// 只用前缀（kw%），不使用前导 %kw%，否则 B-Tree 索引失效。
+func (r *repo) Search(ctx context.Context, keyword string, excludeID uint64, limit int) ([]*biz.User, error) {
+	like := escapeLike(keyword) + "%"
+
+	var pos []UserPO
+	err := tx.WithContext(ctx, r.db).
+		Where("status = ? AND id <> ?", biz.UserStatusNormal, excludeID).
+		Where("(username LIKE ? ESCAPE '!' OR nickname_lower LIKE ? ESCAPE '!')", like, like).
+		Order(clause.OrderBy{Expression: clause.Expr{
+			SQL:  "CASE WHEN username = ? THEN 0 WHEN username LIKE ? ESCAPE '!' THEN 1 ELSE 2 END",
+			Vars: []any{keyword, like},
+		}}).
+		Order("id ASC").
+		Limit(limit).
+		Find(&pos).Error
+	if err != nil {
+		return nil, err
+	}
+	out := make([]*biz.User, 0, len(pos))
+	for i := range pos {
+		out = append(out, pos[i].toBiz())
+	}
+	return out, nil
+}
+
+// escapeLike 转义 LIKE 的通配符；ESCAPE '!' 与 MySQL/SQLite 都兼容。
+func escapeLike(s string) string {
+	return strings.NewReplacer("!", "!!", "%", "!%", "_", "!_").Replace(s)
 }
 
 // GetByID 按主键查询；不存在返回 nil, nil。
