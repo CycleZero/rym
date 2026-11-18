@@ -282,6 +282,15 @@ RYM_TEST_MYSQL_DSN='root:pass@tcp(127.0.0.1:3306)/rym_test?charset=utf8mb4&parse
   go test ./app/im/internal/data -run TestMySQLAcceptance -v
 ```
 
+## 客户端（已定）
+
+- **桌面：Wails v3，始终 latest。** Go 后端负责 HTTP/WS、本地缓存、重连、outbox、托盘与通知；
+  前端用 React/TS，通过 Wails bindings/events 调用。
+- **移动：Flutter 最新 stable。**
+- 客户端独立仓库：`rym-desktop` / `rym-mobile`；本仓库只维护 `api/` 契约与 HTTP/WS 协议。
+- WS 鉴权双模：Wails / Flutter IO 用 `Authorization` 头；浏览器 / Flutter Web 用 30s 单次 ticket。
+- 选型理由、代价与版本策略：`docs/adr/0001-client-stack.md`。
+
 ## 响应契约
 
 成功（业务数据统一在 `data` 下）：
@@ -366,7 +375,8 @@ gRPC client（`data/client/` 实现同一接口，组合根换一行 `wire.Bind`
 - IM v1 未接网关：CORS/JWT/信封仍由本服务兜底（已留双模：`trust_gateway_identity`）；
 - 未引入 etcd / 服务发现 / DTM（单库 + 单进程阶段不需要）；
 - 事件/outbox/MQ 尚未落地（`pkg/tx` 已就绪，outbox 在 P2 阶段接入）；
-- IM 没有在线推送与长连接网关：发消息只落库，客户端靠 `after_seq` 补洞；
+- IM 的 WS 实时推送尚未实现（下一步）：当前发消息只落库，客户端靠轮询 + `after_seq` 补洞；
+- 桌面 / 移动客户端尚未创建（Wails / Flutter）；
 - IM 群聊只有存储模型，没有建群/成员管理 RPC（留给组织/群模块）；
 - IM 撤回/编辑/搜索未做，消息表已预留 `status` / `version` / `edited_at` / `body_text`；
 - 用户模块没有找回密码、第三方登录、刷新令牌、角色权限；

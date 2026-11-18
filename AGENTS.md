@@ -42,7 +42,7 @@
 明确不做（不要提前实现）：
 
 - MQ / outbox / 异步扇出
-- WebSocket / 长连接 gateway / 在线推送
+- 独立 gateway 拆分 / 多实例网关（单进程 WS 先做）
 - 群扇出、大群、读扩散
 - 端到端加密、消息搜索、撤回 / 编辑（表结构预留即可）
 - 多活 / 容灾 / 灰度 / 限流
@@ -53,6 +53,15 @@
 - `app/demo`（四层样板，保留）
 - `pkg/{log,trace,metrics,response,transport,tx,db}` 的现有实现（需要改先问）
 - 参考仓库 `/mnt/d/Projects/vcyuan/vcyuan-backend-app`（只读，不修改、不照抄它的部署复杂度）
+
+### 客户端技术栈（已定，勿改）
+
+- **桌面：Wails v3，始终 latest。** 不锁小版本；接受破坏性变更并当轮修复，优先追新特性。
+- **移动：Flutter 最新 stable。** 不使用 Wails 移动端（experimental）。
+- 客户端独立仓库：`rym-desktop`（Wails）/ `rym-mobile`（Flutter）；本仓库只保留服务端与 `api/` 契约。
+- 服务端不为某个客户端做专用接口；客户端差异只在“怎么连”。
+- WS 鉴权双模：Wails / Flutter IO 用 `Authorization: Bearer`；浏览器 / Flutter Web 用 30s 单次 ticket。
+- 决策详情与代价：`docs/adr/0001-client-stack.md`。
 
 ---
 
@@ -158,6 +167,7 @@ cmd/server
 
 - **`require_auth=true` 是全局拦截**：它会让注册/登录这类公开接口也要求身份。只有确认部署在网关之后、所有流量都已带身份时才开；单体本地开发保持 `false`，由业务 handler 自己检查 `UserID == 0` 返回 401。
 - JWT claim 契约：`user_id`（中间件同时接受数字与字符串）、`iat`、`exp`。签发与校验必须用同一个 `security.jwt_secret`。新增 claim 不影响鉴权，但不要改 `user_id` 的语义。
+- WS 鉴权：原生客户端（Wails / Flutter IO）可以用 `Authorization` 头；浏览器 / Flutter Web 不能设置 WS 头，用 30s 单次 ticket。服务端两种都支持，**不要把长期 JWT 放在 URL**。
 - **登录安全**：
   - 密码用 bcrypt（生产 cost=10），不存明文、不记日志、不下发响应。
   - bcrypt 上限 72 字节，超过必须显式拒绝（否则会被静默截断）。
@@ -450,6 +460,7 @@ make fmt / tidy                         # 格式化 / 依赖整理（静态检�
   - 如果修了坑，写清坑的触发条件（后来者才不会再踩）。
 - 不要顺手重构、不要扩大范围、不要改无关文件。
 - 改动契约 / 行为 / 配置项时同步更新 `README.md` 或 `docs/`。
+- 影响技术选型 / 协议 / 部署的决定，写进 `docs/adr/`，并在 commit body 引用。
 - 提交前 `git diff` 自查；提交后 `git status` 确认没有漏文件。
 - 需要 push 时推 `origin/master`；推送前确认 `make verify` 是绿的。
 - 设计问题以 `docs/im-design-best-practices.md` 为准；文档没写的，先问，不要先做再说。
@@ -498,6 +509,10 @@ make fmt / tidy                         # 格式化 / 依赖整理（静态检�
 | 36 | etcd key 漏了 env / 用前缀扫描 | 精确读 `<prefix>/<env>/configs/<svc>/config.yaml` |
 | 37 | 把 `Settings` 按值存进 Usecase | 注入 `SettingsProvider`，每次用例入口读一次 |
 | 38 | 动态配置里放 DB/监听/密钥 | 只放纯业务值；资源类配置启动时读一次 |
+| 39 | 为桌面/移动各造一套专用 API | 契约统一在 `api/`，客户端只适配连接方式 |
+| 40 | WS 只支持 query token | 同时支持 `Authorization`（Wails/Flutter IO）与 ticket（浏览器） |
+| 41 | 把 Wails/Flutter 依赖带进服务端 | 客户端独立仓库，服务端只维护契约 |
+| 42 | 把 Wails 锁在旧版本 | 桌面用 latest，升级后跑客户端冒烟 |
 
 ---
 
