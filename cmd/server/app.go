@@ -7,6 +7,7 @@ import (
 	"github.com/CycleZero/rym/conf"
 	"github.com/CycleZero/rym/pkg/module"
 	"github.com/CycleZero/rym/pkg/transport"
+	transportws "github.com/CycleZero/rym/pkg/transport/ws"
 
 	"github.com/go-kratos/kratos/v3"
 	ktransport "github.com/go-kratos/kratos/v3/transport"
@@ -22,11 +23,15 @@ func NewApp(
 	logger *slog.Logger,
 	hs *khttp.Server,
 	pprofSrv *transport.PProfServer,
+	wsSrv *transportws.Server,
 	mods *module.Set,
 ) *kratos.App {
 	servers := []ktransport.Server{hs}
 	if pprofSrv != nil {
 		servers = append(servers, pprofSrv)
+	}
+	if wsSrv != nil {
+		servers = append(servers, wsSrv)
 	}
 
 	logger.Info("服务模块装配完成", "service", cfg.ServiceName(), "modules", mods.Names())

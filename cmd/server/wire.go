@@ -17,7 +17,9 @@ import (
 	"github.com/CycleZero/rym/pkg/configx"
 	"github.com/CycleZero/rym/pkg/db"
 	"github.com/CycleZero/rym/pkg/transport"
+	transportws "github.com/CycleZero/rym/pkg/transport/ws"
 	"github.com/CycleZero/rym/pkg/tx"
+	"github.com/CycleZero/rym/pkg/wsticket"
 
 	"github.com/go-kratos/kratos/v3"
 	"github.com/google/wire"
@@ -41,9 +43,13 @@ func initApp(
 		newRedisParams,
 		newEtcdParams,
 		newReadinessChecker,
-		db.ProviderSet,      // *gorm.DB + 关闭函数
-		cache.ProviderSet,   // *redis.Client + 关闭函数
-		configx.ProviderSet, // *etcd.Client + 关闭函数
+		newCache,
+		newWSConfig,
+		db.ProviderSet,          // *gorm.DB + 关闭函数
+		cache.ProviderSet,       // *redis.Client + 关闭函数
+		configx.ProviderSet,     // *etcd.Client + 关闭函数
+		wsticket.ProviderSet,    // *wsticket.Store
+		transportws.ProviderSet, // *ws.Hub + *ws.Server
 		tx.NewTxManager,
 		transport.ProviderSet,
 		demo.ProviderSet, // ← 新增服务：加一行

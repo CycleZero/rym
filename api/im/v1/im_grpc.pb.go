@@ -22,10 +22,12 @@ import (
 const _ = grpc.SupportPackageIsVersion9
 
 const (
-	ImService_SendMessage_FullMethodName       = "/api.im.v1.ImService/SendMessage"
-	ImService_PullMessages_FullMethodName      = "/api.im.v1.ImService/PullMessages"
-	ImService_ListConversations_FullMethodName = "/api.im.v1.ImService/ListConversations"
-	ImService_MarkRead_FullMethodName          = "/api.im.v1.ImService/MarkRead"
+	ImService_SendMessage_FullMethodName            = "/api.im.v1.ImService/SendMessage"
+	ImService_PullMessages_FullMethodName           = "/api.im.v1.ImService/PullMessages"
+	ImService_ListConversations_FullMethodName      = "/api.im.v1.ImService/ListConversations"
+	ImService_OpenSingleConversation_FullMethodName = "/api.im.v1.ImService/OpenSingleConversation"
+	ImService_MarkRead_FullMethodName               = "/api.im.v1.ImService/MarkRead"
+	ImService_CreateWSTicket_FullMethodName         = "/api.im.v1.ImService/CreateWSTicket"
 )
 
 // ImServiceClient is the client API for ImService service.
@@ -57,10 +59,21 @@ type ImServiceClient interface {
 	PullMessages(ctx context.Context, in *PullMessagesRequest, opts ...grpc.CallOption) (*PullMessagesResponse, error)
 	// ListConversations 当前用户的会话列表（摘要 + 未读数）。
 	ListConversations(ctx context.Context, in *ListConversationsRequest, opts ...grpc.CallOption) (*ListConversationsResponse, error)
+	// OpenSingleConversation 打开（必要时创建）与某个用户的单聊会话。
+	//
+	// 幂等：A→B 与 B→A 得到同一个会话；不会产生消息。
+	// 客户端从搜索结果点进聊天时用这个接口拿到 conversation_id。
+	OpenSingleConversation(ctx context.Context, in *OpenSingleConversationRequest, opts ...grpc.CallOption) (*Conversation, error)
 	// MarkRead 推进已读位（只增不减）。
 	//
 	// read_seq 小于当前值时为空操作，乱序上报安全。
 	MarkRead(ctx context.Context, in *MarkReadRequest, opts ...grpc.CallOption) (*MarkReadResponse, error)
+	// CreateWSTicket 签发 WebSocket 握手用的 30 秒单次票据。
+	//
+	// 浏览器 / Flutter Web 不能给 WS 设置 Authorization 头，用 ticket；
+	// Wails / Flutter IO 可以直接用 Authorization 头，不需要这个接口。
+	// 票据单次使用，过期或已兑换都会返回 401。
+	CreateWSTicket(ctx context.Context, in *CreateWSTicketRequest, opts ...grpc.CallOption) (*CreateWSTicketResponse, error)
 }
 
 type imServiceClient struct {
@@ -101,10 +114,30 @@ func (c *imServiceClient) ListConversations(ctx context.Context, in *ListConvers
 	return out, nil
 }
 
+func (c *imServiceClient) OpenSingleConversation(ctx context.Context, in *OpenSingleConversationRequest, opts ...grpc.CallOption) (*Conversation, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(Conversation)
+	err := c.cc.Invoke(ctx, ImService_OpenSingleConversation_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 func (c *imServiceClient) MarkRead(ctx context.Context, in *MarkReadRequest, opts ...grpc.CallOption) (*MarkReadResponse, error) {
 	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
 	out := new(MarkReadResponse)
 	err := c.cc.Invoke(ctx, ImService_MarkRead_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *imServiceClient) CreateWSTicket(ctx context.Context, in *CreateWSTicketRequest, opts ...grpc.CallOption) (*CreateWSTicketResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(CreateWSTicketResponse)
+	err := c.cc.Invoke(ctx, ImService_CreateWSTicket_FullMethodName, in, out, cOpts...)
 	if err != nil {
 		return nil, err
 	}
@@ -140,10 +173,21 @@ type ImServiceServer interface {
 	PullMessages(context.Context, *PullMessagesRequest) (*PullMessagesResponse, error)
 	// ListConversations 当前用户的会话列表（摘要 + 未读数）。
 	ListConversations(context.Context, *ListConversationsRequest) (*ListConversationsResponse, error)
+	// OpenSingleConversation 打开（必要时创建）与某个用户的单聊会话。
+	//
+	// 幂等：A→B 与 B→A 得到同一个会话；不会产生消息。
+	// 客户端从搜索结果点进聊天时用这个接口拿到 conversation_id。
+	OpenSingleConversation(context.Context, *OpenSingleConversationRequest) (*Conversation, error)
 	// MarkRead 推进已读位（只增不减）。
 	//
 	// read_seq 小于当前值时为空操作，乱序上报安全。
 	MarkRead(context.Context, *MarkReadRequest) (*MarkReadResponse, error)
+	// CreateWSTicket 签发 WebSocket 握手用的 30 秒单次票据。
+	//
+	// 浏览器 / Flutter Web 不能给 WS 设置 Authorization 头，用 ticket；
+	// Wails / Flutter IO 可以直接用 Authorization 头，不需要这个接口。
+	// 票据单次使用，过期或已兑换都会返回 401。
+	CreateWSTicket(context.Context, *CreateWSTicketRequest) (*CreateWSTicketResponse, error)
 	mustEmbedUnimplementedImServiceServer()
 }
 
@@ -163,8 +207,14 @@ func (UnimplementedImServiceServer) PullMessages(context.Context, *PullMessagesR
 func (UnimplementedImServiceServer) ListConversations(context.Context, *ListConversationsRequest) (*ListConversationsResponse, error) {
 	return nil, status.Error(codes.Unimplemented, "method ListConversations not implemented")
 }
+func (UnimplementedImServiceServer) OpenSingleConversation(context.Context, *OpenSingleConversationRequest) (*Conversation, error) {
+	return nil, status.Error(codes.Unimplemented, "method OpenSingleConversation not implemented")
+}
 func (UnimplementedImServiceServer) MarkRead(context.Context, *MarkReadRequest) (*MarkReadResponse, error) {
 	return nil, status.Error(codes.Unimplemented, "method MarkRead not implemented")
+}
+func (UnimplementedImServiceServer) CreateWSTicket(context.Context, *CreateWSTicketRequest) (*CreateWSTicketResponse, error) {
+	return nil, status.Error(codes.Unimplemented, "method CreateWSTicket not implemented")
 }
 func (UnimplementedImServiceServer) mustEmbedUnimplementedImServiceServer() {}
 func (UnimplementedImServiceServer) testEmbeddedByValue()                   {}
@@ -241,6 +291,24 @@ func _ImService_ListConversations_Handler(srv interface{}, ctx context.Context, 
 	return interceptor(ctx, in, info, handler)
 }
 
+func _ImService_OpenSingleConversation_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(OpenSingleConversationRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(ImServiceServer).OpenSingleConversation(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: ImService_OpenSingleConversation_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(ImServiceServer).OpenSingleConversation(ctx, req.(*OpenSingleConversationRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 func _ImService_MarkRead_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
 	in := new(MarkReadRequest)
 	if err := dec(in); err != nil {
@@ -255,6 +323,24 @@ func _ImService_MarkRead_Handler(srv interface{}, ctx context.Context, dec func(
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
 		return srv.(ImServiceServer).MarkRead(ctx, req.(*MarkReadRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _ImService_CreateWSTicket_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(CreateWSTicketRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(ImServiceServer).CreateWSTicket(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: ImService_CreateWSTicket_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(ImServiceServer).CreateWSTicket(ctx, req.(*CreateWSTicketRequest))
 	}
 	return interceptor(ctx, in, info, handler)
 }
@@ -279,8 +365,16 @@ var ImService_ServiceDesc = grpc.ServiceDesc{
 			Handler:    _ImService_ListConversations_Handler,
 		},
 		{
+			MethodName: "OpenSingleConversation",
+			Handler:    _ImService_OpenSingleConversation_Handler,
+		},
+		{
 			MethodName: "MarkRead",
 			Handler:    _ImService_MarkRead_Handler,
+		},
+		{
+			MethodName: "CreateWSTicket",
+			Handler:    _ImService_CreateWSTicket_Handler,
 		},
 	},
 	Streams:  []grpc.StreamDesc{},

@@ -70,7 +70,7 @@ func newHTTPServer(t *testing.T) *httptest.Server {
 	db := openSQLite(t)
 	uc := biz.NewUsecase(data.NewRepo(db), tx.NewTxManager(db), httpSettings{biz.Settings{
 		DefaultPageSize: 20, MaxPageSize: 100, MaxBodyBytes: 64 * 1024,
-	}})
+	}}, nil)
 	logger := slog.New(slog.NewTextHandler(io.Discard, nil))
 
 	srv := khttp.NewServer(
@@ -80,7 +80,7 @@ func newHTTPServer(t *testing.T) *httptest.Server {
 			response.EncodeError(w, r, err, logger)
 		}),
 	)
-	server.New(srv, service.NewImService(uc, logger))
+	server.New(srv, service.NewImService(uc, nil, logger))
 
 	ts := httptest.NewServer(srv)
 	t.Cleanup(ts.Close)
@@ -260,7 +260,9 @@ func TestRoutesRegisteredFromProto(t *testing.T) {
 		"POST /v1/im/messages",
 		"GET /v1/im/messages",
 		"GET /v1/im/conversations",
+		"POST /v1/im/conversations",
 		"POST /v1/im/conversations/{conversation_id}/read",
+		"POST /v1/im/ws-ticket",
 	}
 	for _, w := range want {
 		found := false
@@ -288,6 +290,12 @@ func (fakeService) PullMessages(context.Context, *v1.PullMessagesRequest) (*v1.P
 func (fakeService) ListConversations(context.Context, *v1.ListConversationsRequest) (*v1.ListConversationsResponse, error) {
 	return nil, nil
 }
+func (fakeService) OpenSingleConversation(context.Context, *v1.OpenSingleConversationRequest) (*v1.Conversation, error) {
+	return nil, nil
+}
 func (fakeService) MarkRead(context.Context, *v1.MarkReadRequest) (*v1.MarkReadResponse, error) {
+	return nil, nil
+}
+func (fakeService) CreateWSTicket(context.Context, *v1.CreateWSTicketRequest) (*v1.CreateWSTicketResponse, error) {
 	return nil, nil
 }

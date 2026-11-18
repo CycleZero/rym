@@ -13,8 +13,11 @@ import (
 	"github.com/CycleZero/rym/app/im/internal/data"
 	"github.com/CycleZero/rym/app/im/internal/server"
 	"github.com/CycleZero/rym/app/im/internal/service"
+	ws2 "github.com/CycleZero/rym/app/im/internal/ws"
 	conf2 "github.com/CycleZero/rym/conf"
+	"github.com/CycleZero/rym/pkg/transport/ws"
 	"github.com/CycleZero/rym/pkg/tx"
+	"github.com/CycleZero/rym/pkg/wsticket"
 	"github.com/go-kratos/kratos/v3/transport/http"
 	"go.etcd.io/etcd/client/v3"
 	"gorm.io/gorm"
@@ -30,15 +33,16 @@ import (
 //   - 否则组合根无法引用（Go internal 规则）
 //
 // ctx 由组合根创建并在停机时 cancel，用于停止配置 watch goroutine。
-func Provide(ctx context.Context, cfg *conf.Config, bc *conf2.Bootstrap, etcd *clientv3.Client, srv *http.Server, db *gorm.DB, tm tx.TxManager, logger *slog.Logger) (*Module, error) {
+func Provide(ctx context.Context, cfg *conf.Config, bc *conf2.Bootstrap, etcd *clientv3.Client, hub *ws.Hub, tickets *wsticket.Store, srv *http.Server, db *gorm.DB, tm tx.TxManager, logger *slog.Logger) (*Module, error) {
 	repo := data.NewRepo(db)
 	configStore, err := NewStore(ctx, cfg, bc, etcd, logger)
 	if err != nil {
 		return nil, err
 	}
 	bizSettingsProvider := NewSettingsProvider(configStore)
-	usecase := biz.NewUsecase(repo, tm, bizSettingsProvider)
-	imService := service.NewImService(usecase, logger)
+	eventPublisher := ws2.NewPublisher(hub, logger)
+	usecase := biz.NewUsecase(repo, tm, bizSettingsProvider, eventPublisher)
+	imService := service.NewImService(usecase, tickets, logger)
 	module := server.New(srv, imService)
 	imModule := newModule(module)
 	return imModule, nil

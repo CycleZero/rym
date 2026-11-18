@@ -17,18 +17,31 @@ var _ = new(context.Context)
 
 const _ = http.SupportPackageIsVersion3
 
+const OperationImServiceCreateWSTicket = "/api.im.v1.ImService/CreateWSTicket"
 const OperationImServiceListConversations = "/api.im.v1.ImService/ListConversations"
 const OperationImServiceMarkRead = "/api.im.v1.ImService/MarkRead"
+const OperationImServiceOpenSingleConversation = "/api.im.v1.ImService/OpenSingleConversation"
 const OperationImServicePullMessages = "/api.im.v1.ImService/PullMessages"
 const OperationImServiceSendMessage = "/api.im.v1.ImService/SendMessage"
 
 type ImServiceHTTPServer interface {
+	// CreateWSTicket CreateWSTicket 签发 WebSocket 握手用的 30 秒单次票据。
+	//
+	// 浏览器 / Flutter Web 不能给 WS 设置 Authorization 头，用 ticket；
+	// Wails / Flutter IO 可以直接用 Authorization 头，不需要这个接口。
+	// 票据单次使用，过期或已兑换都会返回 401。
+	CreateWSTicket(context.Context, *CreateWSTicketRequest) (*CreateWSTicketResponse, error)
 	// ListConversations ListConversations 当前用户的会话列表（摘要 + 未读数）。
 	ListConversations(context.Context, *ListConversationsRequest) (*ListConversationsResponse, error)
 	// MarkRead MarkRead 推进已读位（只增不减）。
 	//
 	// read_seq 小于当前值时为空操作，乱序上报安全。
 	MarkRead(context.Context, *MarkReadRequest) (*MarkReadResponse, error)
+	// OpenSingleConversation OpenSingleConversation 打开（必要时创建）与某个用户的单聊会话。
+	//
+	// 幂等：A→B 与 B→A 得到同一个会话；不会产生消息。
+	// 客户端从搜索结果点进聊天时用这个接口拿到 conversation_id。
+	OpenSingleConversation(context.Context, *OpenSingleConversationRequest) (*Conversation, error)
 	// PullMessages PullMessages 拉取消息（游标分页，禁止 OFFSET）。
 	//
 	//   - after_seq > 0：补洞，返回 seq > after_seq 的**升序**消息
@@ -51,7 +64,9 @@ func RegisterImServiceHTTPServer(s *http.Server, srv ImServiceHTTPServer) {
 	r.Handle("POST", "/v1/im/messages", _ImService_SendMessage0_HTTP_Handler(srv))
 	r.Handle("GET", "/v1/im/messages", _ImService_PullMessages0_HTTP_Handler(srv))
 	r.Handle("GET", "/v1/im/conversations", _ImService_ListConversations0_HTTP_Handler(srv))
+	r.Handle("POST", "/v1/im/conversations", _ImService_OpenSingleConversation0_HTTP_Handler(srv))
 	r.Handle("POST", "/v1/im/conversations/{conversation_id}/read", _ImService_MarkRead0_HTTP_Handler(srv))
+	r.Handle("POST", "/v1/im/ws-ticket", _ImService_CreateWSTicket0_HTTP_Handler(srv))
 }
 
 func _ImService_SendMessage0_HTTP_Handler(srv ImServiceHTTPServer) func(ctx http.Context) error {
@@ -111,6 +126,25 @@ func _ImService_ListConversations0_HTTP_Handler(srv ImServiceHTTPServer) func(ct
 	}
 }
 
+func _ImService_OpenSingleConversation0_HTTP_Handler(srv ImServiceHTTPServer) func(ctx http.Context) error {
+	return func(ctx http.Context) error {
+		var in OpenSingleConversationRequest
+		if err := ctx.Bind(&in); err != nil {
+			return err
+		}
+		http.SetOperation(ctx, OperationImServiceOpenSingleConversation)
+		h := ctx.Middleware(func(ctx context.Context, req interface{}) (interface{}, error) {
+			return srv.OpenSingleConversation(ctx, req.(*OpenSingleConversationRequest))
+		})
+		out, err := h(ctx, &in)
+		if err != nil {
+			return err
+		}
+		reply := out.(*Conversation)
+		return ctx.Result(200, reply)
+	}
+}
+
 func _ImService_MarkRead0_HTTP_Handler(srv ImServiceHTTPServer) func(ctx http.Context) error {
 	return func(ctx http.Context) error {
 		var in MarkReadRequest
@@ -133,13 +167,43 @@ func _ImService_MarkRead0_HTTP_Handler(srv ImServiceHTTPServer) func(ctx http.Co
 	}
 }
 
+func _ImService_CreateWSTicket0_HTTP_Handler(srv ImServiceHTTPServer) func(ctx http.Context) error {
+	return func(ctx http.Context) error {
+		var in CreateWSTicketRequest
+		if err := ctx.Bind(&in); err != nil {
+			return err
+		}
+		http.SetOperation(ctx, OperationImServiceCreateWSTicket)
+		h := ctx.Middleware(func(ctx context.Context, req interface{}) (interface{}, error) {
+			return srv.CreateWSTicket(ctx, req.(*CreateWSTicketRequest))
+		})
+		out, err := h(ctx, &in)
+		if err != nil {
+			return err
+		}
+		reply := out.(*CreateWSTicketResponse)
+		return ctx.Result(200, reply)
+	}
+}
+
 type ImServiceHTTPClient interface {
+	// CreateWSTicket CreateWSTicket 签发 WebSocket 握手用的 30 秒单次票据。
+	//
+	// 浏览器 / Flutter Web 不能给 WS 设置 Authorization 头，用 ticket；
+	// Wails / Flutter IO 可以直接用 Authorization 头，不需要这个接口。
+	// 票据单次使用，过期或已兑换都会返回 401。
+	CreateWSTicket(ctx context.Context, req *CreateWSTicketRequest, opts ...http.CallOption) (rsp *CreateWSTicketResponse, err error)
 	// ListConversations ListConversations 当前用户的会话列表（摘要 + 未读数）。
 	ListConversations(ctx context.Context, req *ListConversationsRequest, opts ...http.CallOption) (rsp *ListConversationsResponse, err error)
 	// MarkRead MarkRead 推进已读位（只增不减）。
 	//
 	// read_seq 小于当前值时为空操作，乱序上报安全。
 	MarkRead(ctx context.Context, req *MarkReadRequest, opts ...http.CallOption) (rsp *MarkReadResponse, err error)
+	// OpenSingleConversation OpenSingleConversation 打开（必要时创建）与某个用户的单聊会话。
+	//
+	// 幂等：A→B 与 B→A 得到同一个会话；不会产生消息。
+	// 客户端从搜索结果点进聊天时用这个接口拿到 conversation_id。
+	OpenSingleConversation(ctx context.Context, req *OpenSingleConversationRequest, opts ...http.CallOption) (rsp *Conversation, err error)
 	// PullMessages PullMessages 拉取消息（游标分页，禁止 OFFSET）。
 	//
 	//   - after_seq > 0：补洞，返回 seq > after_seq 的**升序**消息
@@ -163,6 +227,28 @@ type ImServiceHTTPClientImpl struct {
 
 func NewImServiceHTTPClient(client *http.Client) ImServiceHTTPClient {
 	return &ImServiceHTTPClientImpl{client}
+}
+
+// CreateWSTicket CreateWSTicket 签发 WebSocket 握手用的 30 秒单次票据。
+//
+// 浏览器 / Flutter Web 不能给 WS 设置 Authorization 头，用 ticket；
+// Wails / Flutter IO 可以直接用 Authorization 头，不需要这个接口。
+// 票据单次使用，过期或已兑换都会返回 401。
+func (c *ImServiceHTTPClientImpl) CreateWSTicket(ctx context.Context, in *CreateWSTicketRequest, opts ...http.CallOption) (*CreateWSTicketResponse, error) {
+	var out CreateWSTicketResponse
+	pattern := "/v1/im/ws-ticket"
+	path := http.BuildPath(pattern, in)
+	opts = append([]http.CallOption{
+		http.Accept("application/protojson"),
+		http.ContentType("application/protojson"),
+		http.Operation(OperationImServiceCreateWSTicket),
+		http.PathTemplate(pattern),
+	}, opts...)
+	err := c.cc.Invoke(ctx, "POST", path, in, &out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return &out, nil
 }
 
 // ListConversations ListConversations 当前用户的会话列表（摘要 + 未读数）。
@@ -193,6 +279,27 @@ func (c *ImServiceHTTPClientImpl) MarkRead(ctx context.Context, in *MarkReadRequ
 		http.Accept("application/protojson"),
 		http.ContentType("application/protojson"),
 		http.Operation(OperationImServiceMarkRead),
+		http.PathTemplate(pattern),
+	}, opts...)
+	err := c.cc.Invoke(ctx, "POST", path, in, &out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return &out, nil
+}
+
+// OpenSingleConversation OpenSingleConversation 打开（必要时创建）与某个用户的单聊会话。
+//
+// 幂等：A→B 与 B→A 得到同一个会话；不会产生消息。
+// 客户端从搜索结果点进聊天时用这个接口拿到 conversation_id。
+func (c *ImServiceHTTPClientImpl) OpenSingleConversation(ctx context.Context, in *OpenSingleConversationRequest, opts ...http.CallOption) (*Conversation, error) {
+	var out Conversation
+	pattern := "/v1/im/conversations"
+	path := http.BuildPath(pattern, in)
+	opts = append([]http.CallOption{
+		http.Accept("application/protojson"),
+		http.ContentType("application/protojson"),
+		http.Operation(OperationImServiceOpenSingleConversation),
 		http.PathTemplate(pattern),
 	}, opts...)
 	err := c.cc.Invoke(ctx, "POST", path, in, &out, opts...)

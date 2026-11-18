@@ -269,7 +269,8 @@ type conversationRow struct {
 	MCreatedAt   *time.Time `gorm:"column:m_created_at"`
 	MEditedAt    *time.Time `gorm:"column:m_edited_at"`
 
-	PeerReadSeq int64 `gorm:"column:peer_read_seq"`
+	PeerReadSeq int64  `gorm:"column:peer_read_seq"`
+	PeerID      uint64 `gorm:"column:peer_id"`
 }
 
 // ListConversations 返回当前用户的会话摘要，按最后消息时间倒序。
@@ -291,7 +292,12 @@ func (r *repo) ListConversations(ctx context.Context, userID uint64, limit int) 
 			CASE WHEN c.type = 1 THEN (
 				SELECT MAX(rp.read_seq) FROM conversation_participants AS rp
 				WHERE rp.conversation_id = p.conversation_id AND rp.user_id <> p.user_id
-			) ELSE 0 END AS peer_read_seq`).
+			) ELSE 0 END AS peer_read_seq,
+			CASE WHEN c.type = 1 THEN (
+				SELECT rp2.user_id FROM conversation_participants AS rp2
+				WHERE rp2.conversation_id = p.conversation_id AND rp2.user_id <> p.user_id
+				LIMIT 1
+			) ELSE 0 END AS peer_id`).
 		Joins("JOIN conversations AS c ON c.id = p.conversation_id").
 		Joins("LEFT JOIN messages AS m ON m.conversation_id = c.id AND m.seq = c.last_seq").
 		Where("p.user_id = ? AND p.left_at IS NULL", userID).
@@ -333,6 +339,7 @@ func (r *repo) ListConversations(ctx context.Context, userID uint64, limit int) 
 			view.LastMsgAt = *row.LastMsgAt
 		}
 		view.PeerReadSeq = row.PeerReadSeq
+		view.PeerID = row.PeerID
 		if row.MMsgID != nil {
 			view.LastMessage = &biz.Message{
 				MsgID:          *row.MMsgID,
@@ -432,4 +439,17 @@ func derefTime(v *time.Time) time.Time {
 		return time.Time{}
 	}
 	return *v
+}
+
+// ListParticipantIDs 返回会话当前成员（未退出）。
+func (r *repo) ListParticipantIDs(ctx context.Context, conversationID uint64) ([]uint64, error) {
+	var ids []uint64
+	err := tx.WithContext(ctx, r.db).
+		Model(&ParticipantPO{}).
+		Where("conversation_id = ? AND left_at IS NULL", conversationID).
+		Pluck("user_id", &ids).Error
+	if err != nil {
+		return nil, err
+	}
+	return ids, nil
 }

@@ -51,6 +51,33 @@ func (u *Usecase) ListConversations(ctx context.Context, in ListConversationsInp
 	return &ListConversationsResult{List: list, MaxVersion: maxVersion}, nil
 }
 
+// OpenSingleConversation 打开（必要时创建）与 toUserID 的单聊会话。
+//
+// 复用 EnsureSingleConversation：会话键由双方 uid 字典序派生，A→B 与 B→A
+// 得到同一条，且不产生消息。客户端从搜索结果点进聊天时用它拿 conversation_id。
+func (u *Usecase) OpenSingleConversation(ctx context.Context, userID, toUserID uint64) (*ConversationView, error) {
+	if userID == 0 {
+		return nil, errs.Unauthorized("请先登录")
+	}
+	if toUserID == 0 || toUserID == userID {
+		return nil, errs.InvalidArgument("to_user_id 不合法")
+	}
+
+	var conv *Conversation
+	err := u.tm.WithTx(ctx, func(txCtx context.Context) error {
+		c, err := u.repo.EnsureSingleConversation(txCtx, userID, toUserID)
+		if err != nil {
+			return err
+		}
+		conv = c
+		return nil
+	})
+	if err != nil {
+		return nil, wrapInternal("打开单聊会话失败", err)
+	}
+	return &ConversationView{Conversation: *conv, PeerID: toUserID}, nil
+}
+
 // MarkReadInput 已读上报入参。
 type MarkReadInput struct {
 	ConversationID uint64
@@ -145,5 +172,20 @@ func (u *Usecase) MarkRead(ctx context.Context, in MarkReadInput) (*MarkReadResu
 	if err != nil {
 		return nil, err
 	}
+	if result != nil {
+		u.publishReadUpdated(ctx, in.ConversationID, in.UserID, result.ReadSeq)
+	}
 	return result, nil
+}
+
+// publishReadUpdated 在已读提交后推送；对端与其他设备据此更新已读位。
+func (u *Usecase) publishReadUpdated(ctx context.Context, conversationID, userID uint64, readSeq int64) {
+	if u.publisher == nil {
+		return
+	}
+	ids, err := u.repo.ListParticipantIDs(ctx, conversationID)
+	if err != nil {
+		return
+	}
+	u.publisher.ReadUpdated(ctx, conversationID, userID, readSeq, ids)
 }

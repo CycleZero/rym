@@ -308,7 +308,9 @@ type Conversation struct {
 	JoinedAt    string   `protobuf:"bytes,10,opt,name=joined_at,json=joinedAt,proto3" json:"joined_at,omitempty"`
 	// 单聊对端的已读位（A 能看到 B 读到哪了）。
 	// 群聊暂为 0：群已读回执需要按成员聚合，v1 不做（留字段避免以后改契约）。
-	PeerReadSeq   int64 `protobuf:"varint,11,opt,name=peer_read_seq,json=peerReadSeq,proto3" json:"peer_read_seq,omitempty"`
+	PeerReadSeq int64 `protobuf:"varint,11,opt,name=peer_read_seq,json=peerReadSeq,proto3" json:"peer_read_seq,omitempty"`
+	// 单聊对端 user_id；群聊为 0。客户端用它调 BatchGetUsers 拿昵称/头像。
+	PeerId        uint64 `protobuf:"varint,12,opt,name=peer_id,json=peerId,proto3" json:"peer_id,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -416,6 +418,13 @@ func (x *Conversation) GetJoinedAt() string {
 func (x *Conversation) GetPeerReadSeq() int64 {
 	if x != nil {
 		return x.PeerReadSeq
+	}
+	return 0
+}
+
+func (x *Conversation) GetPeerId() uint64 {
+	if x != nil {
+		return x.PeerId
 	}
 	return 0
 }
@@ -750,6 +759,50 @@ func (x *ListConversationsRequest) GetLimit() int32 {
 	return 0
 }
 
+type OpenSingleConversationRequest struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	ToUserId      uint64                 `protobuf:"varint,1,opt,name=to_user_id,json=toUserId,proto3" json:"to_user_id,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *OpenSingleConversationRequest) Reset() {
+	*x = OpenSingleConversationRequest{}
+	mi := &file_im_v1_im_proto_msgTypes[7]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *OpenSingleConversationRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*OpenSingleConversationRequest) ProtoMessage() {}
+
+func (x *OpenSingleConversationRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_im_v1_im_proto_msgTypes[7]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use OpenSingleConversationRequest.ProtoReflect.Descriptor instead.
+func (*OpenSingleConversationRequest) Descriptor() ([]byte, []int) {
+	return file_im_v1_im_proto_rawDescGZIP(), []int{7}
+}
+
+func (x *OpenSingleConversationRequest) GetToUserId() uint64 {
+	if x != nil {
+		return x.ToUserId
+	}
+	return 0
+}
+
 type ListConversationsResponse struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
 	List  []*Conversation        `protobuf:"bytes,1,rep,name=list,proto3" json:"list,omitempty"`
@@ -761,7 +814,7 @@ type ListConversationsResponse struct {
 
 func (x *ListConversationsResponse) Reset() {
 	*x = ListConversationsResponse{}
-	mi := &file_im_v1_im_proto_msgTypes[7]
+	mi := &file_im_v1_im_proto_msgTypes[8]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -773,7 +826,7 @@ func (x *ListConversationsResponse) String() string {
 func (*ListConversationsResponse) ProtoMessage() {}
 
 func (x *ListConversationsResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_im_v1_im_proto_msgTypes[7]
+	mi := &file_im_v1_im_proto_msgTypes[8]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -786,7 +839,7 @@ func (x *ListConversationsResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ListConversationsResponse.ProtoReflect.Descriptor instead.
 func (*ListConversationsResponse) Descriptor() ([]byte, []int) {
-	return file_im_v1_im_proto_rawDescGZIP(), []int{7}
+	return file_im_v1_im_proto_rawDescGZIP(), []int{8}
 }
 
 func (x *ListConversationsResponse) GetList() []*Conversation {
@@ -814,7 +867,7 @@ type MarkReadRequest struct {
 
 func (x *MarkReadRequest) Reset() {
 	*x = MarkReadRequest{}
-	mi := &file_im_v1_im_proto_msgTypes[8]
+	mi := &file_im_v1_im_proto_msgTypes[9]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -826,7 +879,7 @@ func (x *MarkReadRequest) String() string {
 func (*MarkReadRequest) ProtoMessage() {}
 
 func (x *MarkReadRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_im_v1_im_proto_msgTypes[8]
+	mi := &file_im_v1_im_proto_msgTypes[9]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -839,7 +892,7 @@ func (x *MarkReadRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use MarkReadRequest.ProtoReflect.Descriptor instead.
 func (*MarkReadRequest) Descriptor() ([]byte, []int) {
-	return file_im_v1_im_proto_rawDescGZIP(), []int{8}
+	return file_im_v1_im_proto_rawDescGZIP(), []int{9}
 }
 
 func (x *MarkReadRequest) GetConversationId() uint64 {
@@ -852,6 +905,95 @@ func (x *MarkReadRequest) GetConversationId() uint64 {
 func (x *MarkReadRequest) GetReadSeq() int64 {
 	if x != nil {
 		return x.ReadSeq
+	}
+	return 0
+}
+
+type CreateWSTicketRequest struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *CreateWSTicketRequest) Reset() {
+	*x = CreateWSTicketRequest{}
+	mi := &file_im_v1_im_proto_msgTypes[10]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *CreateWSTicketRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*CreateWSTicketRequest) ProtoMessage() {}
+
+func (x *CreateWSTicketRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_im_v1_im_proto_msgTypes[10]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use CreateWSTicketRequest.ProtoReflect.Descriptor instead.
+func (*CreateWSTicketRequest) Descriptor() ([]byte, []int) {
+	return file_im_v1_im_proto_rawDescGZIP(), []int{10}
+}
+
+type CreateWSTicketResponse struct {
+	state  protoimpl.MessageState `protogen:"open.v1"`
+	Ticket string                 `protobuf:"bytes,1,opt,name=ticket,proto3" json:"ticket,omitempty"`
+	// Unix 秒。
+	ExpiresAt     int64 `protobuf:"varint,2,opt,name=expires_at,json=expiresAt,proto3" json:"expires_at,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *CreateWSTicketResponse) Reset() {
+	*x = CreateWSTicketResponse{}
+	mi := &file_im_v1_im_proto_msgTypes[11]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *CreateWSTicketResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*CreateWSTicketResponse) ProtoMessage() {}
+
+func (x *CreateWSTicketResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_im_v1_im_proto_msgTypes[11]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use CreateWSTicketResponse.ProtoReflect.Descriptor instead.
+func (*CreateWSTicketResponse) Descriptor() ([]byte, []int) {
+	return file_im_v1_im_proto_rawDescGZIP(), []int{11}
+}
+
+func (x *CreateWSTicketResponse) GetTicket() string {
+	if x != nil {
+		return x.Ticket
+	}
+	return ""
+}
+
+func (x *CreateWSTicketResponse) GetExpiresAt() int64 {
+	if x != nil {
+		return x.ExpiresAt
 	}
 	return 0
 }
@@ -870,7 +1012,7 @@ type MarkReadResponse struct {
 
 func (x *MarkReadResponse) Reset() {
 	*x = MarkReadResponse{}
-	mi := &file_im_v1_im_proto_msgTypes[9]
+	mi := &file_im_v1_im_proto_msgTypes[12]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -882,7 +1024,7 @@ func (x *MarkReadResponse) String() string {
 func (*MarkReadResponse) ProtoMessage() {}
 
 func (x *MarkReadResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_im_v1_im_proto_msgTypes[9]
+	mi := &file_im_v1_im_proto_msgTypes[12]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -895,7 +1037,7 @@ func (x *MarkReadResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use MarkReadResponse.ProtoReflect.Descriptor instead.
 func (*MarkReadResponse) Descriptor() ([]byte, []int) {
-	return file_im_v1_im_proto_rawDescGZIP(), []int{9}
+	return file_im_v1_im_proto_rawDescGZIP(), []int{12}
 }
 
 func (x *MarkReadResponse) GetReadSeq() int64 {
@@ -938,7 +1080,7 @@ const file_im_v1_im_proto_rawDesc = "" +
 	" \x01(\x05R\aversion\x12\x1d\n" +
 	"\n" +
 	"created_at\x18\v \x01(\tR\tcreatedAt\x12\x1b\n" +
-	"\tedited_at\x18\f \x01(\tR\beditedAt\"\xe8\x02\n" +
+	"\tedited_at\x18\f \x01(\tR\beditedAt\"\x81\x03\n" +
 	"\fConversation\x12\x0e\n" +
 	"\x02id\x18\x01 \x01(\x04R\x02id\x12/\n" +
 	"\x04type\x18\x02 \x01(\x0e2\x1b.api.im.v1.ConversationTypeR\x04type\x12\x19\n" +
@@ -951,7 +1093,8 @@ const file_im_v1_im_proto_rawDesc = "" +
 	"\x05muted\x18\t \x01(\bR\x05muted\x12\x1b\n" +
 	"\tjoined_at\x18\n" +
 	" \x01(\tR\bjoinedAt\x12\"\n" +
-	"\rpeer_read_seq\x18\v \x01(\x03R\vpeerReadSeq\"\xda\x01\n" +
+	"\rpeer_read_seq\x18\v \x01(\x03R\vpeerReadSeq\x12\x17\n" +
+	"\apeer_id\x18\f \x01(\x04R\x06peerId\"\xda\x01\n" +
 	"\x12SendMessageRequest\x12'\n" +
 	"\x0fconversation_id\x18\x01 \x01(\x04R\x0econversationId\x12\x1c\n" +
 	"\n" +
@@ -977,14 +1120,22 @@ const file_im_v1_im_proto_rawDesc = "" +
 	"\amax_seq\x18\x02 \x01(\x03R\x06maxSeq\x12\x19\n" +
 	"\bhas_more\x18\x03 \x01(\bR\ahasMore\"0\n" +
 	"\x18ListConversationsRequest\x12\x14\n" +
-	"\x05limit\x18\x01 \x01(\x05R\x05limit\"i\n" +
+	"\x05limit\x18\x01 \x01(\x05R\x05limit\"=\n" +
+	"\x1dOpenSingleConversationRequest\x12\x1c\n" +
+	"\n" +
+	"to_user_id\x18\x01 \x01(\x04R\btoUserId\"i\n" +
 	"\x19ListConversationsResponse\x12+\n" +
 	"\x04list\x18\x01 \x03(\v2\x17.api.im.v1.ConversationR\x04list\x12\x1f\n" +
 	"\vmax_version\x18\x02 \x01(\x03R\n" +
 	"maxVersion\"U\n" +
 	"\x0fMarkReadRequest\x12'\n" +
 	"\x0fconversation_id\x18\x01 \x01(\x04R\x0econversationId\x12\x19\n" +
-	"\bread_seq\x18\x02 \x01(\x03R\areadSeq\"j\n" +
+	"\bread_seq\x18\x02 \x01(\x03R\areadSeq\"\x17\n" +
+	"\x15CreateWSTicketRequest\"O\n" +
+	"\x16CreateWSTicketResponse\x12\x16\n" +
+	"\x06ticket\x18\x01 \x01(\tR\x06ticket\x12\x1d\n" +
+	"\n" +
+	"expires_at\x18\x02 \x01(\x03R\texpiresAt\"j\n" +
 	"\x10MarkReadResponse\x12\x19\n" +
 	"\bread_seq\x18\x01 \x01(\x03R\areadSeq\x12!\n" +
 	"\funread_count\x18\x02 \x01(\x03R\vunreadCount\x12\x18\n" +
@@ -1001,12 +1152,14 @@ const file_im_v1_im_proto_rawDesc = "" +
 	"\x12MESSAGE_TYPE_AUDIO\x10\x04\x12\x16\n" +
 	"\x12MESSAGE_TYPE_VIDEO\x10\x05\x12\x17\n" +
 	"\x13MESSAGE_TYPE_SYSTEM\x10\x06\x12\x17\n" +
-	"\x13MESSAGE_TYPE_CUSTOM\x10\a2\xda\x03\n" +
+	"\x13MESSAGE_TYPE_CUSTOM\x10\a2\xcc\x05\n" +
 	"\tImService\x12h\n" +
 	"\vSendMessage\x12\x1d.api.im.v1.SendMessageRequest\x1a\x1e.api.im.v1.SendMessageResponse\"\x1a\x82\xd3\xe4\x93\x02\x14:\x01*\"\x0f/v1/im/messages\x12h\n" +
 	"\fPullMessages\x12\x1e.api.im.v1.PullMessagesRequest\x1a\x1f.api.im.v1.PullMessagesResponse\"\x17\x82\xd3\xe4\x93\x02\x11\x12\x0f/v1/im/messages\x12|\n" +
-	"\x11ListConversations\x12#.api.im.v1.ListConversationsRequest\x1a$.api.im.v1.ListConversationsResponse\"\x1c\x82\xd3\xe4\x93\x02\x16\x12\x14/v1/im/conversations\x12{\n" +
-	"\bMarkRead\x12\x1a.api.im.v1.MarkReadRequest\x1a\x1b.api.im.v1.MarkReadResponse\"6\x82\xd3\xe4\x93\x020:\x01*\"+/v1/im/conversations/{conversation_id}/readB'Z%github.com/CycleZero/rym/api/im/v1;v1b\x06proto3"
+	"\x11ListConversations\x12#.api.im.v1.ListConversationsRequest\x1a$.api.im.v1.ListConversationsResponse\"\x1c\x82\xd3\xe4\x93\x02\x16\x12\x14/v1/im/conversations\x12|\n" +
+	"\x16OpenSingleConversation\x12(.api.im.v1.OpenSingleConversationRequest\x1a\x17.api.im.v1.Conversation\"\x1f\x82\xd3\xe4\x93\x02\x19:\x01*\"\x14/v1/im/conversations\x12{\n" +
+	"\bMarkRead\x12\x1a.api.im.v1.MarkReadRequest\x1a\x1b.api.im.v1.MarkReadResponse\"6\x82\xd3\xe4\x93\x020:\x01*\"+/v1/im/conversations/{conversation_id}/read\x12r\n" +
+	"\x0eCreateWSTicket\x12 .api.im.v1.CreateWSTicketRequest\x1a!.api.im.v1.CreateWSTicketResponse\"\x1b\x82\xd3\xe4\x93\x02\x15:\x01*\"\x10/v1/im/ws-ticketB'Z%github.com/CycleZero/rym/api/im/v1;v1b\x06proto3"
 
 var (
 	file_im_v1_im_proto_rawDescOnce sync.Once
@@ -1021,20 +1174,23 @@ func file_im_v1_im_proto_rawDescGZIP() []byte {
 }
 
 var file_im_v1_im_proto_enumTypes = make([]protoimpl.EnumInfo, 2)
-var file_im_v1_im_proto_msgTypes = make([]protoimpl.MessageInfo, 10)
+var file_im_v1_im_proto_msgTypes = make([]protoimpl.MessageInfo, 13)
 var file_im_v1_im_proto_goTypes = []any{
-	(ConversationType)(0),             // 0: api.im.v1.ConversationType
-	(MessageType)(0),                  // 1: api.im.v1.MessageType
-	(*Message)(nil),                   // 2: api.im.v1.Message
-	(*Conversation)(nil),              // 3: api.im.v1.Conversation
-	(*SendMessageRequest)(nil),        // 4: api.im.v1.SendMessageRequest
-	(*SendMessageResponse)(nil),       // 5: api.im.v1.SendMessageResponse
-	(*PullMessagesRequest)(nil),       // 6: api.im.v1.PullMessagesRequest
-	(*PullMessagesResponse)(nil),      // 7: api.im.v1.PullMessagesResponse
-	(*ListConversationsRequest)(nil),  // 8: api.im.v1.ListConversationsRequest
-	(*ListConversationsResponse)(nil), // 9: api.im.v1.ListConversationsResponse
-	(*MarkReadRequest)(nil),           // 10: api.im.v1.MarkReadRequest
-	(*MarkReadResponse)(nil),          // 11: api.im.v1.MarkReadResponse
+	(ConversationType)(0),                 // 0: api.im.v1.ConversationType
+	(MessageType)(0),                      // 1: api.im.v1.MessageType
+	(*Message)(nil),                       // 2: api.im.v1.Message
+	(*Conversation)(nil),                  // 3: api.im.v1.Conversation
+	(*SendMessageRequest)(nil),            // 4: api.im.v1.SendMessageRequest
+	(*SendMessageResponse)(nil),           // 5: api.im.v1.SendMessageResponse
+	(*PullMessagesRequest)(nil),           // 6: api.im.v1.PullMessagesRequest
+	(*PullMessagesResponse)(nil),          // 7: api.im.v1.PullMessagesResponse
+	(*ListConversationsRequest)(nil),      // 8: api.im.v1.ListConversationsRequest
+	(*OpenSingleConversationRequest)(nil), // 9: api.im.v1.OpenSingleConversationRequest
+	(*ListConversationsResponse)(nil),     // 10: api.im.v1.ListConversationsResponse
+	(*MarkReadRequest)(nil),               // 11: api.im.v1.MarkReadRequest
+	(*CreateWSTicketRequest)(nil),         // 12: api.im.v1.CreateWSTicketRequest
+	(*CreateWSTicketResponse)(nil),        // 13: api.im.v1.CreateWSTicketResponse
+	(*MarkReadResponse)(nil),              // 14: api.im.v1.MarkReadResponse
 }
 var file_im_v1_im_proto_depIdxs = []int32{
 	1,  // 0: api.im.v1.Message.type:type_name -> api.im.v1.MessageType
@@ -1047,13 +1203,17 @@ var file_im_v1_im_proto_depIdxs = []int32{
 	4,  // 7: api.im.v1.ImService.SendMessage:input_type -> api.im.v1.SendMessageRequest
 	6,  // 8: api.im.v1.ImService.PullMessages:input_type -> api.im.v1.PullMessagesRequest
 	8,  // 9: api.im.v1.ImService.ListConversations:input_type -> api.im.v1.ListConversationsRequest
-	10, // 10: api.im.v1.ImService.MarkRead:input_type -> api.im.v1.MarkReadRequest
-	5,  // 11: api.im.v1.ImService.SendMessage:output_type -> api.im.v1.SendMessageResponse
-	7,  // 12: api.im.v1.ImService.PullMessages:output_type -> api.im.v1.PullMessagesResponse
-	9,  // 13: api.im.v1.ImService.ListConversations:output_type -> api.im.v1.ListConversationsResponse
-	11, // 14: api.im.v1.ImService.MarkRead:output_type -> api.im.v1.MarkReadResponse
-	11, // [11:15] is the sub-list for method output_type
-	7,  // [7:11] is the sub-list for method input_type
+	9,  // 10: api.im.v1.ImService.OpenSingleConversation:input_type -> api.im.v1.OpenSingleConversationRequest
+	11, // 11: api.im.v1.ImService.MarkRead:input_type -> api.im.v1.MarkReadRequest
+	12, // 12: api.im.v1.ImService.CreateWSTicket:input_type -> api.im.v1.CreateWSTicketRequest
+	5,  // 13: api.im.v1.ImService.SendMessage:output_type -> api.im.v1.SendMessageResponse
+	7,  // 14: api.im.v1.ImService.PullMessages:output_type -> api.im.v1.PullMessagesResponse
+	10, // 15: api.im.v1.ImService.ListConversations:output_type -> api.im.v1.ListConversationsResponse
+	3,  // 16: api.im.v1.ImService.OpenSingleConversation:output_type -> api.im.v1.Conversation
+	14, // 17: api.im.v1.ImService.MarkRead:output_type -> api.im.v1.MarkReadResponse
+	13, // 18: api.im.v1.ImService.CreateWSTicket:output_type -> api.im.v1.CreateWSTicketResponse
+	13, // [13:19] is the sub-list for method output_type
+	7,  // [7:13] is the sub-list for method input_type
 	7,  // [7:7] is the sub-list for extension type_name
 	7,  // [7:7] is the sub-list for extension extendee
 	0,  // [0:7] is the sub-list for field type_name
@@ -1070,7 +1230,7 @@ func file_im_v1_im_proto_init() {
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_im_v1_im_proto_rawDesc), len(file_im_v1_im_proto_rawDesc)),
 			NumEnums:      2,
-			NumMessages:   10,
+			NumMessages:   13,
 			NumExtensions: 0,
 			NumServices:   1,
 		},

@@ -62,7 +62,7 @@ func newUsecase(t *testing.T) (*biz.Usecase, *gorm.DB) {
 		DefaultPageSize: 20,
 		MaxPageSize:     100,
 		MaxBodyBytes:    64 * 1024,
-	}})
+	}}, nil)
 	return uc, db
 }
 
@@ -458,6 +458,9 @@ func TestListConversationsShowsPeerReadSeq(t *testing.T) {
 	if got := res.List[0].PeerReadSeq; got != 1 {
 		t.Fatalf("A 看到 B 的已读位=%d，期望 1", got)
 	}
+	if got := res.List[0].PeerID; got != 2 {
+		t.Fatalf("A 看到 B 的 peer_id=%d，期望 2", got)
+	}
 	if got := res.List[0].Unread; got != 0 {
 		t.Fatalf("A 自己的消息不应计未读，实际 %d", got)
 	}
@@ -472,4 +475,82 @@ func seqSlice(list []*biz.Message) []int64 {
 		out = append(out, m.Seq)
 	}
 	return out
+}
+
+// capturePublisher 记录用例在事务提交后发出的事件。
+type capturePublisher struct {
+	mu       sync.Mutex
+	messages []publishedMessage
+	reads    []publishedRead
+}
+
+type publishedMessage struct {
+	conversationID uint64
+	msg            *biz.Message
+	recipients     []uint64
+}
+
+type publishedRead struct {
+	conversationID uint64
+	userID         uint64
+	readSeq        int64
+	recipients     []uint64
+}
+
+func (p *capturePublisher) MessageCreated(_ context.Context, conversationID uint64, msg *biz.Message, recipients []uint64) {
+	p.mu.Lock()
+	defer p.mu.Unlock()
+	p.messages = append(p.messages, publishedMessage{conversationID, msg, recipients})
+}
+
+func (p *capturePublisher) ReadUpdated(_ context.Context, conversationID, userID uint64, readSeq int64, recipients []uint64) {
+	p.mu.Lock()
+	defer p.mu.Unlock()
+	p.reads = append(p.reads, publishedRead{conversationID, userID, readSeq, recipients})
+}
+
+// TestUsecasePublishesEvents 发送/已读在事务提交后触发推送；收件人包含双方。
+func TestUsecasePublishesEvents(t *testing.T) {
+	_, db := newUsecase(t)
+	pub := &capturePublisher{}
+	uc := biz.NewUsecase(data.NewRepo(db), tx.NewTxManager(db), staticSettings{biz.Settings{
+		DefaultPageSize: 20, MaxPageSize: 100, MaxBodyBytes: 64 * 1024,
+	}}, pub)
+
+	res, err := uc.SendMessage(context.Background(), biz.SendMessageInput{
+		ToUserID: 2, SenderID: 1, ClientMsgID: "push-1",
+		Type: biz.MessageTypeText, Body: testBody,
+	})
+	if err != nil {
+		t.Fatalf("发送失败：%v", err)
+	}
+
+	pub.mu.Lock()
+	if len(pub.messages) != 1 {
+		pub.mu.Unlock()
+		t.Fatalf("应发布 1 条 message.created，实际 %d", len(pub.messages))
+	}
+	ev := pub.messages[0]
+	pub.mu.Unlock()
+	if ev.conversationID != res.Message.ConversationID || ev.msg.Seq != 1 {
+		t.Fatalf("message.created 内容不对：%+v", ev)
+	}
+	if len(ev.recipients) != 2 {
+		t.Fatalf("单聊收件人应为 2 人，实际 %v", ev.recipients)
+	}
+
+	if _, err := uc.MarkRead(context.Background(), biz.MarkReadInput{
+		ConversationID: res.Message.ConversationID, UserID: 2, ReadSeq: 1,
+	}); err != nil {
+		t.Fatalf("已读失败：%v", err)
+	}
+
+	pub.mu.Lock()
+	defer pub.mu.Unlock()
+	if len(pub.reads) != 1 {
+		t.Fatalf("应发布 1 条 read.updated，实际 %d", len(pub.reads))
+	}
+	if pub.reads[0].userID != 2 || pub.reads[0].readSeq != 1 {
+		t.Fatalf("read.updated 内容不对：%+v", pub.reads[0])
+	}
 }

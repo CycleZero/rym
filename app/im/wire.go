@@ -12,9 +12,12 @@ import (
 	"github.com/CycleZero/rym/app/im/internal/data"
 	"github.com/CycleZero/rym/app/im/internal/server"
 	"github.com/CycleZero/rym/app/im/internal/service"
+	imws "github.com/CycleZero/rym/app/im/internal/ws"
 	rootconf "github.com/CycleZero/rym/conf"
 	"github.com/CycleZero/rym/pkg/tx"
+	"github.com/CycleZero/rym/pkg/wsticket"
 
+	transportws "github.com/CycleZero/rym/pkg/transport/ws"
 	khttp "github.com/go-kratos/kratos/v3/transport/http"
 	"github.com/google/wire"
 	clientv3 "go.etcd.io/etcd/client/v3"
@@ -33,6 +36,8 @@ func Provide(
 	cfg *conf.Config,
 	bc *rootconf.Bootstrap,
 	etcd *clientv3.Client,
+	hub *transportws.Hub,
+	tickets *wsticket.Store,
 	srv *khttp.Server,
 	db *gorm.DB,
 	tm tx.TxManager,
@@ -45,6 +50,8 @@ func Provide(
 		server.ProviderSet,
 		NewStore,
 		NewSettingsProvider,
+		imws.NewPublisher,
+		wire.Bind(new(service.TicketIssuer), new(*wsticket.Store)),
 		newModule,
 	))
 }

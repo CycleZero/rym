@@ -3,6 +3,8 @@ package main
 import (
 	"context"
 	"errors"
+	"net"
+	"strconv"
 	"time"
 
 	"github.com/CycleZero/rym/conf"
@@ -10,6 +12,7 @@ import (
 	"github.com/CycleZero/rym/pkg/configx"
 	"github.com/CycleZero/rym/pkg/db"
 	"github.com/CycleZero/rym/pkg/transport"
+	transportws "github.com/CycleZero/rym/pkg/transport/ws"
 
 	"github.com/redis/go-redis/v9"
 	"gorm.io/gorm"
@@ -38,6 +41,42 @@ func newRedisParams(bc *conf.Bootstrap) cache.RedisParams {
 		Host:     redisCfg.GetHost(),
 		Port:     int(redisCfg.GetPort()),
 		Password: redisCfg.GetPassword(),
+	}
+}
+
+// newCache 把 Redis 客户端适配成 wsticket 使用的通用缓存接口。
+func newCache(rdb *redis.Client) cache.Cache {
+	return cache.NewRedisCacheWithClient(rdb)
+}
+
+// newWSConfig 把共享配置转换为 WS 监听参数。
+//
+// 路径固定 /v1/im/ws；host/port 缺省 0.0.0.0:8001。
+// Origin 白名单复用 server.http.cors_allow_origins。
+func newWSConfig(bc *conf.Bootstrap) transportws.Config {
+	w := bc.GetServer().GetWs()
+	if !w.GetEnable() {
+		return transportws.Config{}
+	}
+	host := w.GetHost()
+	if host == "" {
+		host = "0.0.0.0"
+	}
+	port := w.GetPort()
+	if port == 0 {
+		port = 8001
+	}
+	return transportws.Config{
+		Enable:          true,
+		Addr:            net.JoinHostPort(host, strconv.Itoa(int(port))),
+		Path:            "/v1/im/ws",
+		JWTSecret:       bc.GetSecurity().GetJwtSecret(),
+		AllowedOrigins:  bc.GetServer().GetHttp().GetCorsAllowOrigins(),
+		Heartbeat:       time.Duration(w.GetHeartbeatSeconds()) * time.Second,
+		PongTimeout:     time.Duration(w.GetPongTimeoutSeconds()) * time.Second,
+		WriteTimeout:    10 * time.Second,
+		MaxLifetime:     time.Duration(w.GetMaxLifetimeSeconds()) * time.Second,
+		MaxConnsPerUser: int(w.GetMaxConnectionsPerUser()),
 	}
 }
 

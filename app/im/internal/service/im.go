@@ -10,22 +10,31 @@ package service
 import (
 	"context"
 	"log/slog"
+	"time"
 
 	v1 "github.com/CycleZero/rym/api/im/v1"
 	"github.com/CycleZero/rym/app/im/internal/biz"
 	"github.com/CycleZero/rym/pkg/common"
 	"github.com/CycleZero/rym/pkg/errs"
+
+	khttp "github.com/go-kratos/kratos/v3/transport/http"
 )
+
+// TicketIssuer 签发 WS 单次票据；生产实现是 pkg/wsticket.Store。
+type TicketIssuer interface {
+	Issue(ctx context.Context, uid uint64, origin string) (string, time.Time, error)
+}
 
 // ImService 实现 v1.ImServiceHTTPServer。
 type ImService struct {
-	uc     *biz.Usecase
-	logger *slog.Logger
+	uc      *biz.Usecase
+	tickets TicketIssuer
+	logger  *slog.Logger
 }
 
-// NewImService 由 Wire 注入用例与日志器。
-func NewImService(uc *biz.Usecase, logger *slog.Logger) *ImService {
-	return &ImService{uc: uc, logger: logger}
+// NewImService 由 Wire 注入用例、票据签发器与日志器。
+func NewImService(uc *biz.Usecase, tickets TicketIssuer, logger *slog.Logger) *ImService {
+	return &ImService{uc: uc, tickets: tickets, logger: logger}
 }
 
 // SendMessage 发送消息。
@@ -73,6 +82,15 @@ func (s *ImService) PullMessages(ctx context.Context, req *v1.PullMessagesReques
 	}, nil
 }
 
+// OpenSingleConversation 打开单聊会话。
+func (s *ImService) OpenSingleConversation(ctx context.Context, req *v1.OpenSingleConversationRequest) (*v1.Conversation, error) {
+	view, err := s.uc.OpenSingleConversation(ctx, uint64(common.Metadata(ctx).UserID), req.GetToUserId())
+	if err != nil {
+		return nil, err
+	}
+	return toProtoConversation(view), nil
+}
+
 // ListConversations 会话列表。
 func (s *ImService) ListConversations(ctx context.Context, req *v1.ListConversationsRequest) (*v1.ListConversationsResponse, error) {
 	res, err := s.uc.ListConversations(ctx, biz.ListConversationsInput{
@@ -86,6 +104,27 @@ func (s *ImService) ListConversations(ctx context.Context, req *v1.ListConversat
 		List:       toProtoConversationList(res.List),
 		MaxVersion: res.MaxVersion,
 	}, nil
+}
+
+// CreateWSTicket 签发 WS 握手票据。
+func (s *ImService) CreateWSTicket(ctx context.Context, _ *v1.CreateWSTicketRequest) (*v1.CreateWSTicketResponse, error) {
+	uid := uint64(common.Metadata(ctx).UserID)
+	if uid == 0 {
+		return nil, errs.Unauthorized("请先登录")
+	}
+	if s.tickets == nil {
+		return nil, errs.Unavailable("WS 票据服务未启用")
+	}
+
+	origin := ""
+	if r, ok := khttp.RequestFromServerContext(ctx); ok {
+		origin = r.Header.Get("Origin")
+	}
+	ticket, expiresAt, err := s.tickets.Issue(ctx, uid, origin)
+	if err != nil {
+		return nil, errs.Internal("生成 WS 票据失败").WithCause(err)
+	}
+	return &v1.CreateWSTicketResponse{Ticket: ticket, ExpiresAt: expiresAt.Unix()}, nil
 }
 
 // MarkRead 推进已读位。

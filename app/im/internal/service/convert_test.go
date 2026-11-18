@@ -63,6 +63,7 @@ func TestToProtoConversationMapsSummary(t *testing.T) {
 		LastMessage: &biz.Message{MsgID: "m", Seq: 10},
 		Unread:      2,
 		PeerReadSeq: 7,
+		PeerID:      2,
 	})
 
 	if got.GetId() != 1 ||
@@ -72,6 +73,7 @@ func TestToProtoConversationMapsSummary(t *testing.T) {
 		got.GetUnreadCount() != 2 ||
 		got.GetVersion() != 3 ||
 		got.GetPeerReadSeq() != 7 ||
+		got.GetPeerId() != 2 ||
 		!got.GetPinned() || !got.GetMuted() ||
 		got.GetJoinedAt() != "2026-11-16T08:00:00Z" ||
 		got.GetLastMessage().GetSeq() != 10 {

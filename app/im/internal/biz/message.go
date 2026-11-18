@@ -139,7 +139,25 @@ func (u *Usecase) SendMessage(ctx context.Context, in SendMessageInput) (*SendMe
 		}
 		return nil, err
 	}
+	// 事务已提交后再推送；推送失败只影响实时性，不影响消息正确性。
+	if result != nil && !result.Duplicated {
+		u.publishMessageCreated(ctx, result.Message)
+	}
 	return result, nil
+}
+
+// publishMessageCreated 在事务提交后按会话成员扇出实时事件。
+//
+// 拿不到成员列表时直接跳过：客户端仍可通过 after_seq 拉取补洞。
+func (u *Usecase) publishMessageCreated(ctx context.Context, msg *Message) {
+	if u.publisher == nil || msg == nil {
+		return
+	}
+	ids, err := u.repo.ListParticipantIDs(ctx, msg.ConversationID)
+	if err != nil {
+		return
+	}
+	u.publisher.MessageCreated(ctx, msg.ConversationID, msg, ids)
 }
 
 // conversationForSend 解析目标会话。

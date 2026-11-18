@@ -18,7 +18,9 @@ import (
 	"github.com/CycleZero/rym/pkg/configx"
 	"github.com/CycleZero/rym/pkg/db"
 	"github.com/CycleZero/rym/pkg/transport"
+	"github.com/CycleZero/rym/pkg/transport/ws"
 	"github.com/CycleZero/rym/pkg/tx"
+	"github.com/CycleZero/rym/pkg/wsticket"
 	"github.com/go-kratos/kratos/v3"
 	"log/slog"
 )
@@ -45,6 +47,11 @@ func initApp(bc *conf.Bootstrap, demoCfg *conf2.Config, imCfg *conf3.Config, use
 	readinessChecker := newReadinessChecker(gormDB, client)
 	server := transport.NewHTTPServer(bc, middlewares, logger, readinessChecker)
 	pProfServer := transport.NewPProfServer(bc, logger)
+	config := newWSConfig(bc)
+	hub := ws.NewHub(config, logger)
+	cacheCache := newCache(client)
+	store := wsticket.NewStore(cacheCache)
+	wsServer := ws.NewServer(config, hub, store, logger)
 	txManager := tx.NewTxManager(gormDB)
 	module, err := demo.Provide(demoCfg, server, gormDB, txManager, logger)
 	if err != nil {
@@ -61,7 +68,7 @@ func initApp(bc *conf.Bootstrap, demoCfg *conf2.Config, imCfg *conf3.Config, use
 		cleanup()
 		return nil, nil, err
 	}
-	imModule, err := im.Provide(context, imCfg, bc, clientv3Client, server, gormDB, txManager, logger)
+	imModule, err := im.Provide(context, imCfg, bc, clientv3Client, hub, store, server, gormDB, txManager, logger)
 	if err != nil {
 		cleanup4()
 		cleanup3()
@@ -78,7 +85,7 @@ func initApp(bc *conf.Bootstrap, demoCfg *conf2.Config, imCfg *conf3.Config, use
 		return nil, nil, err
 	}
 	set := newModuleSet(module, imModule, userModule)
-	app := NewApp(bc, logger, server, pProfServer, set)
+	app := NewApp(bc, logger, server, pProfServer, wsServer, set)
 	return app, func() {
 		cleanup4()
 		cleanup3()

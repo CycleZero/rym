@@ -45,12 +45,35 @@ service ImService {
     option (google.api.http) = {get: "/v1/im/conversations"};
   }
 
+  // OpenSingleConversation 打开（必要时创建）与某个用户的单聊会话。
+  //
+  // 幂等：A→B 与 B→A 得到同一个会话；不会产生消息。
+  // 客户端从搜索结果点进聊天时用这个接口拿到 conversation_id。
+  rpc OpenSingleConversation(OpenSingleConversationRequest) returns (Conversation) {
+    option (google.api.http) = {
+      post: "/v1/im/conversations"
+      body: "*"
+    };
+  }
+
   // MarkRead 推进已读位（只增不减）。
   //
   // read_seq 小于当前值时为空操作，乱序上报安全。
   rpc MarkRead(MarkReadRequest) returns (MarkReadResponse) {
     option (google.api.http) = {
       post: "/v1/im/conversations/{conversation_id}/read"
+      body: "*"
+    };
+  }
+
+  // CreateWSTicket 签发 WebSocket 握手用的 30 秒单次票据。
+  //
+  // 浏览器 / Flutter Web 不能给 WS 设置 Authorization 头，用 ticket；
+  // Wails / Flutter IO 可以直接用 Authorization 头，不需要这个接口。
+  // 票据单次使用，过期或已兑换都会返回 401。
+  rpc CreateWSTicket(CreateWSTicketRequest) returns (CreateWSTicketResponse) {
+    option (google.api.http) = {
+      post: "/v1/im/ws-ticket"
       body: "*"
     };
   }
@@ -126,6 +149,8 @@ message Conversation {
   // 单聊对端的已读位（A 能看到 B 读到哪了）。
   // 群聊暂为 0：群已读回执需要按成员聚合，v1 不做（留字段避免以后改契约）。
   int64 peer_read_seq = 11;
+  // 单聊对端 user_id；群聊为 0。客户端用它调 BatchGetUsers 拿昵称/头像。
+  uint64 peer_id = 12;
 }
 
 message SendMessageRequest {
@@ -174,6 +199,10 @@ message ListConversationsRequest {
   int32 limit = 1;
 }
 
+message OpenSingleConversationRequest {
+  uint64 to_user_id = 1;
+}
+
 message ListConversationsResponse {
   repeated Conversation list = 1;
   // 会话状态版本号总和（诊断用；v1 不做增量同步）。
@@ -184,6 +213,14 @@ message MarkReadRequest {
   uint64 conversation_id = 1;
   // 读到的消息 seq；大于会话最大 seq 时按最大 seq 截断。
   int64 read_seq = 2;
+}
+
+message CreateWSTicketRequest {}
+
+message CreateWSTicketResponse {
+  string ticket = 1;
+  // Unix 秒。
+  int64 expires_at = 2;
 }
 
 message MarkReadResponse {

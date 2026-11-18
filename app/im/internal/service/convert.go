@@ -62,6 +62,7 @@ func toProtoConversation(v *biz.ConversationView) *v1.Conversation {
 		Muted:       v.Participant.Muted,
 		JoinedAt:    formatTime(v.Participant.JoinedAt),
 		PeerReadSeq: v.PeerReadSeq,
+		PeerId:      v.PeerID,
 	}
 }
 

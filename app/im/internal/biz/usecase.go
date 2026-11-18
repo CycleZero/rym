@@ -13,9 +13,10 @@ import (
 // 本层**不记错误日志**：错误统一由传输层的 ErrorEncoder 收口
 // （pkg/response.EncodeError 只对 5xx 记 Error，4xx 不写日志）。
 type Usecase struct {
-	repo     Repo
-	tm       tx.TxManager
-	settings SettingsProvider
+	repo      Repo
+	tm        tx.TxManager
+	settings  SettingsProvider
+	publisher EventPublisher
 }
 
 // SettingsProvider 返回当前配置快照。
@@ -27,9 +28,12 @@ type SettingsProvider interface {
 	Settings() Settings
 }
 
-// NewUsecase 由 Wire 注入仓储接口、事务管理器与配置提供者。
-func NewUsecase(repo Repo, tm tx.TxManager, settings SettingsProvider) *Usecase {
-	return &Usecase{repo: repo, tm: tm, settings: settings}
+// NewUsecase 由 Wire 注入仓储接口、事务管理器、配置提供者与事件发布器。
+//
+// publisher 允许为 nil（测试/未启用 WS）：发送与已读仍然正常落库，
+// 只是不推送实时事件。
+func NewUsecase(repo Repo, tm tx.TxManager, settings SettingsProvider, publisher EventPublisher) *Usecase {
+	return &Usecase{repo: repo, tm: tm, settings: settings, publisher: publisher}
 }
 
 // normalizeLimit 归一化分页条数：缺省用默认值，超上限截断。

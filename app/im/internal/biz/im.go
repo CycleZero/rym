@@ -140,6 +140,8 @@ type ConversationView struct {
 	Unread int64
 	// PeerReadSeq 单聊对端的已读位；群聊为 0（v1 不做群已读聚合）。
 	PeerReadSeq int64
+	// PeerID 单聊对端 user_id；群聊为 0。
+	PeerID uint64
 }
 
 // Settings IM 的业务参数；由组合根从服务配置转换（biz 不 import conf）。
@@ -205,4 +207,17 @@ type Repo interface {
 	//
 	// 返回 false 表示已有更新的已读位（并发上报），调用方应重新读取。
 	AdvanceRead(ctx context.Context, conversationID, userID uint64, readSeq, readCountableSeq, readSenderSeq int64) (bool, error)
+
+	// ListParticipantIDs 返回会话当前成员（left_at IS NULL）。
+	// WS 推送按成员 uid 扇出；单聊 2 人，群聊 ≤200。
+	ListParticipantIDs(ctx context.Context, conversationID uint64) ([]uint64, error)
+}
+
+// EventPublisher 是实时事件发布口。
+//
+// 实现在 app/im/internal/ws（WS Hub），biz 只定义接口，不依赖传输层。
+// 发布必须是 non-blocking 的：推送失败不能影响已经提交的消息。
+type EventPublisher interface {
+	MessageCreated(ctx context.Context, conversationID uint64, msg *Message, recipients []uint64)
+	ReadUpdated(ctx context.Context, conversationID, userID uint64, readSeq int64, recipients []uint64)
 }
