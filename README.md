@@ -155,7 +155,7 @@ curl -X POST localhost:8000/v1/demos \
 
 ## 用户模块（v1）
 
-只做三件事：**注册 / 登录 / 当前用户**。令牌是 HS256 JWT，
+注册 / 登录 / 当前用户 / **用户发现**。令牌是 HS256 JWT，
 后续请求用 `Authorization: Bearer <token>`（由 `pkg/transport` 统一校验）。
 
 | RPC | HTTP | 说明 |
@@ -163,6 +163,9 @@ curl -X POST localhost:8000/v1/demos \
 | `Register` | `POST /v1/users/register` | 用户名统一转小写；密码 bcrypt 存储，永不下发 |
 | `Login` | `POST /v1/users/login` | 返回 `access_token` / `expires_at` / `user` |
 | `GetMe` | `GET /v1/users/me` | 校验令牌与账号状态 |
+| `SearchUsers` | `GET /v1/users/search` | username / nickname **前缀**搜索，需要登录，最多 50 条 |
+| `GetUser` | `GET /v1/users/{id}` | 公开资料；不存在/禁用统一 404 |
+| `BatchGetUsers` | `POST /v1/users/batch` | 批量取资料（最多 100 个 id），用于会话列表/聊天头部 |
 
 不可回退的约束：
 
@@ -196,8 +199,10 @@ curl -s localhost:8000/v1/users/me -H "Authorization: Bearer $TOKEN"
 |---|---|---|
 | `SendMessage` | `POST /v1/im/messages` | `conversation_id=0` 时给 `to_user_id`，按双方 uid 派生单聊会话 |
 | `PullMessages` | `GET /v1/im/messages` | 游标分页：`before_seq` 翻历史 / `after_seq` 补洞，禁止 OFFSET |
-| `ListConversations` | `GET /v1/im/conversations` | 摘要 + 未读数 + 单聊对端已读位 |
+| `ListConversations` | `GET /v1/im/conversations` | 摘要 + 未读数 + 单聊对端已读位 + `peer_id` |
+| `OpenSingleConversation` | `POST /v1/im/conversations` | 幂等打开/创建单聊，返回会话（不产生消息） |
 | `MarkRead` | `POST /v1/im/conversations/{id}/read` | `read_seq` 只增不减，乱序上报安全 |
+| `CreateWSTicket` | `POST /v1/im/ws-ticket` | 签发 30 秒单次 WS 票据（浏览器/Flutter Web 用） |
 
 不可回退的约束：
 
@@ -268,10 +273,53 @@ etcd:
   dial_timeout_seconds: 3
 ```
 
+### WebSocket 实时推送
+
+发消息仍然走 HTTP；WS 只做**服务端推送**（新消息、已读位变化），
+这样发送的幂等/seq/事务语义不重复实现，断线丢帧也不影响正确性。
+
+- 监听：`server.ws`（独立端口，默认 `0.0.0.0:8001`，路径 `/v1/im/ws`）。
+- 鉴权双模：
+  - Wails Go 后端 / Flutter IO：WS 握手直接带 `Authorization: Bearer <JWT>`；
+  - 浏览器 / Flutter Web：先 `POST /v1/im/ws-ticket` 拿 30 秒单次票据，
+    再连 `ws://.../v1/im/ws?ticket=...`（Redis `GETDEL` 兑换，只能用一次）。
+- 票据示例：
+
+```bash
+TICKET=$(curl -s -X POST localhost:8000/v1/im/ws-ticket \
+  -H "Authorization: Bearer $TOKEN" | jq -r '.data.ticket')
+# 客户端连 ws://host:8001/v1/im/ws?ticket=$TICKET
+```
+
+- 事件：
+  - `hello`：`conn_id` / `heartbeat_sec` / `max_lifetime_sec`
+  - `message.created`：完整消息（客户端发现 seq 跳号仍然走 `after_seq` 补洞）
+  - `read.updated`：`conversation_id` / `user_id` / `read_seq`
+- 语义：
+  - 事务提交后才推送；推送失败只影响实时性，消息以 DB 为准；
+  - 每连接 64 条发送队列，慢客户端直接断开（4008），重连后补洞；
+  - 25s 心跳、60s 内无 pong 判死；单用户最多 5 连接；连接最长 24h；
+  - 单体阶段是进程内连接表；多实例需要 Redis Pub/Sub（未做）；
+  - 反向代理必须 `proxy_read_timeout > 心跳间隔`（nginx 默认 60s，建议 ≥300s）。
+
+```yaml
+server:
+  ws:
+    enable: true
+    host: "0.0.0.0"
+    port: 8001
+    heartbeat_seconds: 25
+    pong_timeout_seconds: 10
+    max_connections_per_user: 5
+    max_lifetime_seconds: 86400
+```
+
 ### 存储：MySQL 主库，SQLite 仅测试
 
 - 表结构两份等价 DDL：`app/im/migrations/001_init_mysql.sql`（生产）与
   `001_init_sqlite.sql`（测试/单机）；改表必须两份一起改。
+- 迁移由 `schema_migrations` 记录（`make migrate` 不会重复执行）；新增变更用
+  `002_*.sql` 增量迁移，不要改已发布的 001。
 - 数据层不用 `FOR UPDATE` / `ON DUPLICATE KEY` / `GREATEST` 等方言专用 SQL，
   唯一分支是 MySQL 的 `SELECT ... FOR UPDATE`（`data.rowLock`）。
 - 测试默认跑 SQLite（`go test ./app/im/...`，无需任何外部服务）；
@@ -313,7 +361,7 @@ RYM_TEST_MYSQL_DSN='root:pass@tcp(127.0.0.1:3306)/rym_test?charset=utf8mb4&parse
 
 ## 配置
 
-- **进程级**：`conf/common.proto`（server/log/otel/data/security）。
+- **进程级**：`conf/common.proto`（server/log/otel/data/security/etcd/ws）。
 - **服务级**：`app/<svc>/conf/conf.proto`，文件默认 `configs/<svc>/config.yaml`（示例见
   `configs/{demo,im,user}/config.yaml.example`，分别用 `-demo-conf` / `-im-conf` /
   `-user-conf` 指定路径），缺失时用默认值。
@@ -375,7 +423,8 @@ gRPC client（`data/client/` 实现同一接口，组合根换一行 `wire.Bind`
 - IM v1 未接网关：CORS/JWT/信封仍由本服务兜底（已留双模：`trust_gateway_identity`）；
 - 未引入 etcd / 服务发现 / DTM（单库 + 单进程阶段不需要）；
 - 事件/outbox/MQ 尚未落地（`pkg/tx` 已就绪，outbox 在 P2 阶段接入）；
-- IM 的 WS 实时推送尚未实现（下一步）：当前发消息只落库，客户端靠轮询 + `after_seq` 补洞；
+- WS 实时推送只支持单进程：多实例需要 Redis Pub/Sub / 网关路由；
+- WS 没有 presence / 正在输入 / 离线推送（APNs/FCM）；
 - 桌面 / 移动客户端尚未创建（Wails / Flutter）；
 - IM 群聊只有存储模型，没有建群/成员管理 RPC（留给组织/群模块）；
 - IM 撤回/编辑/搜索未做，消息表已预留 `status` / `version` / `edited_at` / `body_text`；
