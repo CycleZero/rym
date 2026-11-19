@@ -210,7 +210,9 @@ message ListConversationsResponse {
 }
 
 message MarkReadRequest {
-  uint64 conversation_id = 1;
+  // 显式 json_name：Kratos 生成客户端用 protoreflect 的 JSON name 做 path 变量替换，
+  // 默认 camelCase（conversationId）与路由模板 {conversation_id} 不匹配。
+  uint64 conversation_id = 1 [json_name = "conversation_id"];
   // 读到的消息 seq；大于会话最大 seq 时按最大 seq 截断。
   int64 read_seq = 2;
 }

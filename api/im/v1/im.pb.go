@@ -857,8 +857,10 @@ func (x *ListConversationsResponse) GetMaxVersion() int64 {
 }
 
 type MarkReadRequest struct {
-	state          protoimpl.MessageState `protogen:"open.v1"`
-	ConversationId uint64                 `protobuf:"varint,1,opt,name=conversation_id,json=conversationId,proto3" json:"conversation_id,omitempty"`
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// 显式 json_name：Kratos 生成客户端用 protoreflect 的 JSON name 做 path 变量替换，
+	// 默认 camelCase（conversationId）与路由模板 {conversation_id} 不匹配。
+	ConversationId uint64 `protobuf:"varint,1,opt,name=conversation_id,proto3" json:"conversation_id,omitempty"`
 	// 读到的消息 seq；大于会话最大 seq 时按最大 seq 截断。
 	ReadSeq       int64 `protobuf:"varint,2,opt,name=read_seq,json=readSeq,proto3" json:"read_seq,omitempty"`
 	unknownFields protoimpl.UnknownFields
@@ -1127,9 +1129,9 @@ const file_im_v1_im_proto_rawDesc = "" +
 	"\x19ListConversationsResponse\x12+\n" +
 	"\x04list\x18\x01 \x03(\v2\x17.api.im.v1.ConversationR\x04list\x12\x1f\n" +
 	"\vmax_version\x18\x02 \x01(\x03R\n" +
-	"maxVersion\"U\n" +
-	"\x0fMarkReadRequest\x12'\n" +
-	"\x0fconversation_id\x18\x01 \x01(\x04R\x0econversationId\x12\x19\n" +
+	"maxVersion\"V\n" +
+	"\x0fMarkReadRequest\x12(\n" +
+	"\x0fconversation_id\x18\x01 \x01(\x04R\x0fconversation_id\x12\x19\n" +
 	"\bread_seq\x18\x02 \x01(\x03R\areadSeq\"\x17\n" +
 	"\x15CreateWSTicketRequest\"O\n" +
 	"\x16CreateWSTicketResponse\x12\x16\n" +
