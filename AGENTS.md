@@ -398,6 +398,9 @@ MySQL 默认 RR：事务里**第一条普通 SELECT 会固定快照**。如果�
 
 - `*.pb.go`、`wire_gen.go` **必须入库**，克隆即可构建。
 - 改 proto 后跑 `make api` / `make config`；提交生成物。
+- Kratos 生成客户端用 protoreflect 的 JSON name 替换 path 变量：path 字段是
+  snake_case 时必须显式 `[json_name = "..."]`，否则客户端会拼出空路径参数
+  （例如 `/v1/im/conversations//read`）。
 - `make verify` 会重新生成并检查漂移：**工作区必须干净**（先提交或 stash 无关改动），否则 drift 检查会失败在无关文件上。
 
 ### 9.3 新增一个服务
@@ -526,6 +529,7 @@ make fmt / tidy                         # 格式化 / 依赖整理（静态检�
 | 45 | 每连接无界发送队列 | 有界队列 + 慢客户端断开（4008） |
 | 46 | WS 同端口硬塞进 kratos HTTP | 独立 `server.ws` 监听；避免信封/30s 超时/hijack 纠缠 |
 | 47 | 修改已发布的 001 迁移 | 新增 002 增量 SQL；由 `schema_migrations` 记录执行状态 |
+| 48 | path 字段 snake_case 没写 json_name | 显式 `[json_name="..."]`，否则生成客户端拼错路径 |
 
 ---
 
