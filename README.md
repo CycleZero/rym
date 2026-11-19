@@ -338,6 +338,7 @@ RYM_TEST_MYSQL_DSN='root:pass@tcp(127.0.0.1:3306)/rym_test?charset=utf8mb4&parse
 - 客户端独立仓库：`rym-desktop` / `rym-mobile`；本仓库只维护 `api/` 契约与 HTTP/WS 协议。
 - WS 鉴权双模：Wails / Flutter IO 用 `Authorization` 头；浏览器 / Flutter Web 用 30s 单次 ticket。
 - 选型理由、代价与版本策略：`docs/adr/0001-client-stack.md`。
+- 客户端行为契约（本地状态、发送重试、补洞、重连）：`docs/client-protocol.md`。
 
 ## 响应契约
 

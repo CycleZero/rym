@@ -62,6 +62,7 @@
 - 服务端不为某个客户端做专用接口；客户端差异只在“怎么连”。
 - WS 鉴权双模：Wails / Flutter IO 用 `Authorization: Bearer`；浏览器 / Flutter Web 用 30s 单次 ticket。
 - 决策详情与代价：`docs/adr/0001-client-stack.md`。
+- 客户端行为契约（本地状态/补洞/重连/已读）：`docs/client-protocol.md`。
 
 ---
 
